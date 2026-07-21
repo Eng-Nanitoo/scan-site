@@ -20,12 +20,8 @@ import {
   RefreshCw,
   Camera,
   Loader2,
-  Database,
-  Pause
+  Database
 } from 'lucide-react';
-
-const SCAN_COOLDOWN_MS = 2500;
-const DUP_IGNORE_MS = 5000;
 
 let audioCtx = null;
 function getAudioCtx() {
@@ -90,6 +86,7 @@ function playAlreadyScanned() {
 
 export default function Scanner() {
   const [scanResult, setScanResult] = useState(null);
+  const [popupOpen, setPopupOpen] = useState(false);
   const [cameraStarted, setCameraStarted] = useState(false);
   const [starting, setStarting] = useState(false);
   const [stats, setStats] = useState(null);
@@ -98,18 +95,16 @@ export default function Scanner() {
   const [queuedScans, setQueuedScans] = useState([]);
   const [syncing, setSyncing] = useState(false);
   const [manualCode, setManualCode] = useState('');
-  const [verifying, setVerifying] = useState(false);
   const [cachedCards, setCachedCards] = useState(0);
-  const [cooldownActive, setCooldownActive] = useState(false);
-  const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const html5QrCodeRef = useRef(null);
-  const cooldownUntilRef = useRef(0);
+  const popupOpenRef = useRef(false);
   const lastScannedKeyRef = useRef(null);
   const lastScannedTimeRef = useRef(0);
-  const cooldownTimerRef = useRef(null);
   const { token, user, logout } = useAuth();
   const socket = useSocket();
   const navigate = useNavigate();
+
+  const DUP_IGNORE_MS = 5000;
 
   const fetchStats = async () => {
     try {
@@ -135,14 +130,20 @@ export default function Scanner() {
     const queue = await getQueue();
     if (queue.length === 0) return;
     setSyncing(true);
-    const { synced, failed } = await syncQueuedScans(token);
+    const result = await syncQueuedScans(token);
     const updatedQueue = await getQueue();
     setQueuedScans(updatedQueue);
     setSyncing(false);
-    if (synced > 0) fetchStats();
+    if (result.synced > 0) fetchStats();
     refreshLocalData();
-    return { synced, failed };
+    return result;
   }, [token, fetchStats, refreshLocalData]);
+
+  const closePopup = useCallback(() => {
+    setPopupOpen(false);
+    popupOpenRef.current = false;
+    setScanResult(null);
+  }, []);
 
   useEffect(() => {
     const init = async () => {
@@ -158,10 +159,7 @@ export default function Scanner() {
     };
     init();
     fetchStats();
-    return () => {
-      stopScanner();
-      if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
-    };
+    return () => stopScanner();
   }, []);
 
   useEffect(() => {
@@ -172,9 +170,7 @@ export default function Scanner() {
       await doSyncQueuedScans();
       await refreshLocalData();
     };
-    const handleOffline = () => {
-      setIsOnline(false);
-    };
+    const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     return () => {
@@ -195,27 +191,14 @@ export default function Scanner() {
     return () => { socket.off('guest_checked_in', onCheckIn); socket.off('stats_updated', fetchStats); };
   }, [socket]);
 
-  const startCooldown = useCallback(() => {
-    cooldownUntilRef.current = Date.now() + SCAN_COOLDOWN_MS;
-    setCooldownActive(true);
-    setCooldownRemaining(Math.ceil(SCAN_COOLDOWN_MS / 1000));
-
-    if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
-    cooldownTimerRef.current = setInterval(() => {
-      const remaining = cooldownUntilRef.current - Date.now();
-      if (remaining <= 0) {
-        clearInterval(cooldownTimerRef.current);
-        cooldownTimerRef.current = null;
-        setCooldownActive(false);
-        setCooldownRemaining(0);
-      } else {
-        setCooldownRemaining(Math.ceil(remaining / 1000));
-      }
-    }, 200);
+  const showPopup = useCallback((result) => {
+    setScanResult(result);
+    setPopupOpen(true);
+    popupOpenRef.current = true;
   }, []);
 
   const onScanSuccess = useCallback(async (decodedText) => {
-    if (cooldownActive || Date.now() < cooldownUntilRef.current) return;
+    if (popupOpenRef.current) return;
     if (lastScannedKeyRef.current === decodedText && Date.now() - lastScannedTimeRef.current < DUP_IGNORE_MS) return;
 
     if (!isOnline) {
@@ -224,18 +207,14 @@ export default function Scanner() {
         lastScannedKeyRef.current = decodedText;
         lastScannedTimeRef.current = Date.now();
         playInvalid();
-        setScanResult({ type: 'error', message: 'Invalid QR code', icon: <XCircle size={24} /> });
-        startCooldown();
-        setTimeout(() => setScanResult(null), 5000);
+        showPopup({ type: 'error', title: 'Invalid QR', message: 'This QR code is not recognized.', icon: 'error' });
         return;
       }
       if (card.scanned) {
         lastScannedKeyRef.current = decodedText;
         lastScannedTimeRef.current = Date.now();
         playAlreadyScanned();
-        setScanResult({ type: 'warning', message: `Already scanned: ${card.guest_name}`, icon: <AlertTriangle size={24} /> });
-        startCooldown();
-        setTimeout(() => setScanResult(null), 5000);
+        showPopup({ type: 'warning', title: 'Already Scanned', message: `${card.guest_name} has already checked in.`, icon: 'warning' });
         return;
       }
       const { addToQueue } = await import('../lib/offlineDb');
@@ -246,15 +225,10 @@ export default function Scanner() {
       lastScannedKeyRef.current = decodedText;
       lastScannedTimeRef.current = Date.now();
       playSuccess();
-      setScanResult({ type: 'success', message: `${card.guest_name} checked in (offline)`, icon: <CheckCircle2 size={24} /> });
-      startCooldown();
+      showPopup({ type: 'success', title: 'Checked In', message: `${card.guest_name} checked in successfully (offline).`, icon: 'success' });
       await refreshLocalData();
-      setTimeout(() => setScanResult(null), 5000);
       return;
     }
-
-    setVerifying(true);
-    setScanResult(null);
 
     try {
       const res = await fetch('/api/scan', {
@@ -264,33 +238,21 @@ export default function Scanner() {
       });
       const data = await res.json();
 
-      await new Promise(r => setTimeout(r, 1000));
-      setVerifying(false);
+      lastScannedKeyRef.current = decodedText;
+      lastScannedTimeRef.current = Date.now();
 
       if (res.ok) {
-        lastScannedKeyRef.current = decodedText;
-        lastScannedTimeRef.current = Date.now();
         playSuccess();
-        setScanResult({ type: 'success', message: `${data.guest_name} checked in!`, icon: <CheckCircle2 size={24} /> });
-        startCooldown();
+        showPopup({ type: 'success', title: 'Checked In', message: `${data.guest_name} checked in successfully!`, icon: 'success' });
         await markCardScannedLocally(decodedText, data.scanned_at);
       } else if (data.status === 'already_scanned') {
-        lastScannedKeyRef.current = decodedText;
-        lastScannedTimeRef.current = Date.now();
         playAlreadyScanned();
-        setScanResult({ type: 'warning', message: `Already scanned: ${data.guest_name}`, icon: <AlertTriangle size={24} /> });
-        startCooldown();
+        showPopup({ type: 'warning', title: 'Already Scanned', message: `${data.guest_name} has already checked in.`, icon: 'warning' });
       } else {
-        lastScannedKeyRef.current = decodedText;
-        lastScannedTimeRef.current = Date.now();
         playInvalid();
-        setScanResult({ type: 'error', message: data.error, icon: <XCircle size={24} /> });
-        startCooldown();
+        showPopup({ type: 'error', title: 'Invalid QR', message: data.error || 'This QR code is not valid.', icon: 'error' });
       }
-      setTimeout(() => setScanResult(null), 5000);
     } catch (error) {
-      await new Promise(r => setTimeout(r, 1000));
-      setVerifying(false);
       lastScannedKeyRef.current = decodedText;
       lastScannedTimeRef.current = Date.now();
       const { addToQueue } = await import('../lib/offlineDb');
@@ -298,11 +260,9 @@ export default function Scanner() {
       const q = await (await import('../lib/offlineDb')).getQueue();
       setQueuedScans(q);
       playInvalid();
-      setScanResult({ type: 'warning', message: `Connection lost. Queued for retry.`, icon: <CloudOff size={24} /> });
-      startCooldown();
-      setTimeout(() => setScanResult(null), 3000);
+      showPopup({ type: 'error', title: 'Connection Lost', message: 'Scan queued. It will sync when you are back online.', icon: 'offline' });
     }
-  }, [isOnline, token, refreshLocalData, startCooldown]);
+  }, [isOnline, token, refreshLocalData, showPopup]);
 
   const startScanner = async () => {
     setStarting(true);
@@ -323,15 +283,14 @@ export default function Scanner() {
       setCameraStarted(false);
       const msg = error?.message || String(error);
       if (msg.includes('NotAllowedError') || msg.includes('Permission') || msg.includes('permission')) {
-        setScanResult({ type: 'error', message: 'Camera permission denied. Allow in Settings > Safari.', icon: <XCircle size={24} /> });
+        showPopup({ type: 'error', title: 'Camera Denied', message: 'Allow camera access in Settings > Safari.', icon: 'error' });
       } else if (msg.includes('NotFoundError') || msg.includes('not found')) {
-        setScanResult({ type: 'error', message: 'No camera found on this device.', icon: <XCircle size={24} /> });
+        showPopup({ type: 'error', title: 'No Camera', message: 'No camera found on this device.', icon: 'error' });
       } else if (msg.includes('NotReadableError') || msg.includes('could not start') || msg.includes('Could not start')) {
-        setScanResult({ type: 'error', message: 'Camera in use by another app.', icon: <XCircle size={24} /> });
+        showPopup({ type: 'error', title: 'Camera Busy', message: 'Camera is in use by another app.', icon: 'error' });
       } else {
-        setScanResult({ type: 'error', message: 'Camera error: ' + msg, icon: <XCircle size={24} /> });
+        showPopup({ type: 'error', title: 'Camera Error', message: msg, icon: 'error' });
       }
-      setTimeout(() => setScanResult(null), 5000);
     }
   };
 
@@ -344,6 +303,19 @@ export default function Scanner() {
   };
 
   const handleLogout = () => { stopScanner(); logout(); navigate('/login'); };
+
+  const popupColors = {
+    success: { bg: '#065f46', border: '#10b981', iconColor: '#34d399' },
+    warning: { bg: '#92400e', border: '#f59e0b', iconColor: '#fbbf24' },
+    error:   { bg: '#991b1b', border: '#ef4444', iconColor: '#f87171' },
+  };
+
+  const popupIconMap = {
+    success: <CheckCircle2 size={48} />,
+    warning: <AlertTriangle size={48} />,
+    error:   <XCircle size={48} />,
+    offline: <CloudOff size={48} />,
+  };
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
@@ -447,116 +419,75 @@ export default function Scanner() {
 
           {!cameraStarted && !starting && (
             <div style={{ padding: '3rem 2rem', textAlign: 'center' }}>
-              {starting ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-                  <Loader2 size={48} className="spin" style={{ color: 'var(--primary)' }} />
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Starting camera...</p>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
+                <div style={{
+                  width: 80, height: 80, borderRadius: 20, background: 'var(--primary-glow)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)'
+                }}>
+                  <Camera size={36} />
                 </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
-                  <div style={{
-                    width: 80, height: 80, borderRadius: 20, background: 'var(--primary-glow)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)'
-                  }}>
-                    <Camera size={36} />
-                  </div>
-                  <div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.25rem' }}>Ready to Scan</h3>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                      Tap the button below to start your camera
-                    </p>
-                  </div>
-                  <button
-                    className="btn btn-primary"
-                    onClick={startScanner}
-                    style={{ width: 'auto', padding: '1rem 2rem', fontSize: '1rem' }}
-                  >
-                    <Camera size={18} /> Start Camera
-                  </button>
-
-                  <div style={{
-                    width: '100%', maxWidth: 340, display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', gap: '0.75rem', marginTop: '0.5rem'
-                  }}>
-                    <div style={{
-                      width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem'
-                    }}>
-                      <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-                      <span style={{ color: 'var(--text-dim)', fontSize: '0.8rem', fontWeight: 600, whiteSpace: 'nowrap' }}>or enter code manually</span>
-                      <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-                    </div>
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        if (manualCode.trim()) {
-                          onScanSuccess(manualCode.trim());
-                          setManualCode('');
-                        }
-                      }}
-                      style={{ width: '100%', display: 'flex', gap: '0.5rem' }}
-                    >
-                      <input
-                        type="text"
-                        value={manualCode}
-                        onChange={(e) => setManualCode(e.target.value)}
-                        placeholder="Type or paste invitation code"
-                        style={{
-                          flex: 1, padding: '0.75rem 1rem', borderRadius: 'var(--radius)',
-                          border: '1px solid var(--border)', background: 'var(--bg)',
-                          color: 'var(--text)', fontSize: '0.9rem', fontFamily: 'monospace',
-                          outline: 'none'
-                        }}
-                      />
-                      <button
-                        type="submit"
-                        className="btn btn-primary"
-                        disabled={!manualCode.trim()}
-                        style={{ width: 'auto', padding: '0.75rem 1.25rem', fontSize: '0.9rem', opacity: manualCode.trim() ? 1 : 0.5 }}
-                      >
-                        Submit
-                      </button>
-                    </form>
-                  </div>
-
-                  <p style={{ color: 'var(--text-dim)', fontSize: '0.75rem', maxWidth: 280 }}>
-                    Camera requires HTTPS on iOS. Works fully offline once cards are cached.
+                <div>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.25rem' }}>Ready to Scan</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                    Tap the button below to start your camera
                   </p>
                 </div>
-              )}
-            </div>
-          )}
+                <button
+                  className="btn btn-primary"
+                  onClick={startScanner}
+                  style={{ width: 'auto', padding: '1rem 2rem', fontSize: '1rem' }}
+                >
+                  <Camera size={18} /> Start Camera
+                </button>
 
-          {verifying && (
-            <div className="scanner-result warning" style={{ animation: 'pulse 1s ease-in-out infinite' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
-                <Loader2 size={24} className="spin" />
-                <h3 style={{ fontSize: '1.25rem', margin: 0 }}>Verifying...</h3>
-              </div>
-            </div>
-          )}
-
-          {!verifying && scanResult && (
-            <div className={`scanner-result ${scanResult.type}`}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
-                {scanResult.icon}
-                <h3 style={{ fontSize: '1.25rem', margin: 0 }}>{scanResult.message}</h3>
-              </div>
-              {cooldownActive && (
-                <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', opacity: 0.8 }}>
-                  <Pause size={14} />
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Resuming in {cooldownRemaining}s</span>
+                <div style={{
+                  width: '100%', maxWidth: 340, display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', gap: '0.75rem', marginTop: '0.5rem'
+                }}>
                   <div style={{
-                    width: 60, height: 4, borderRadius: 2,
-                    background: 'rgba(255,255,255,0.2)', overflow: 'hidden',
+                    width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem'
                   }}>
-                    <div style={{
-                      height: '100%', borderRadius: 2, background: 'currentColor',
-                      width: `${(cooldownRemaining / Math.ceil(SCAN_COOLDOWN_MS / 1000)) * 100}%`,
-                      transition: 'width 0.2s linear',
-                    }} />
+                    <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                    <span style={{ color: 'var(--text-dim)', fontSize: '0.8rem', fontWeight: 600, whiteSpace: 'nowrap' }}>or enter code manually</span>
+                    <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
                   </div>
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (manualCode.trim() && !popupOpenRef.current) {
+                        onScanSuccess(manualCode.trim());
+                        setManualCode('');
+                      }
+                    }}
+                    style={{ width: '100%', display: 'flex', gap: '0.5rem' }}
+                  >
+                    <input
+                      type="text"
+                      value={manualCode}
+                      onChange={(e) => setManualCode(e.target.value)}
+                      placeholder="Type or paste invitation code"
+                      style={{
+                        flex: 1, padding: '0.75rem 1rem', borderRadius: 'var(--radius)',
+                        border: '1px solid var(--border)', background: 'var(--bg)',
+                        color: 'var(--text)', fontSize: '0.9rem', fontFamily: 'monospace',
+                        outline: 'none'
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      className="btn btn-primary"
+                      disabled={!manualCode.trim()}
+                      style={{ width: 'auto', padding: '0.75rem 1.25rem', fontSize: '0.9rem', opacity: manualCode.trim() ? 1 : 0.5 }}
+                    >
+                      Submit
+                    </button>
+                  </form>
                 </div>
-              )}
+
+                <p style={{ color: 'var(--text-dim)', fontSize: '0.75rem', maxWidth: 280 }}>
+                  Camera requires HTTPS on iOS. Works fully offline once cards are cached.
+                </p>
+              </div>
             </div>
           )}
         </div>
@@ -565,6 +496,71 @@ export default function Scanner() {
           {cameraStarted ? 'Point your camera at a QR code to scan' : 'Start camera or enter code manually above'}
         </div>
       </div>
+
+      {popupOpen && scanResult && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
+          padding: '1rem',
+        }} onClick={(e) => { if (e.target === e.currentTarget) closePopup(); }}>
+          <div style={{
+            background: popupColors[scanResult.type]?.bg || '#1f2937',
+            border: `2px solid ${popupColors[scanResult.type]?.border || '#6b7280'}`,
+            borderRadius: 20,
+            padding: '2.5rem 2rem',
+            maxWidth: 360,
+            width: '100%',
+            textAlign: 'center',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
+            animation: 'popupIn 0.2s ease-out',
+          }}>
+            <div style={{
+              color: popupColors[scanResult.type]?.iconColor || '#fff',
+              marginBottom: '1.25rem',
+              display: 'flex', justifyContent: 'center',
+            }}>
+              {popupIconMap[scanResult.icon] || popupIconMap.error}
+            </div>
+            <h2 style={{
+              margin: '0 0 0.5rem', fontSize: '1.4rem', fontWeight: 700,
+              color: '#fff',
+            }}>
+              {scanResult.title}
+            </h2>
+            <p style={{
+              margin: '0 0 2rem', fontSize: '1rem',
+              color: 'rgba(255,255,255,0.85)', lineHeight: 1.5,
+            }}>
+              {scanResult.message}
+            </p>
+            <button
+              onClick={closePopup}
+              style={{
+                width: '100%', padding: '0.9rem 1.5rem',
+                borderRadius: 12, border: 'none',
+                background: popupColors[scanResult.type]?.border || '#6b7280',
+                color: '#fff', fontSize: '1rem', fontWeight: 700,
+                cursor: 'pointer', fontFamily: 'inherit',
+                transition: 'opacity 0.15s',
+              }}
+              onMouseDown={(e) => e.currentTarget.style.opacity = '0.8'}
+              onMouseUp={(e) => e.currentTarget.style.opacity = '1'}
+              onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+              autoFocus
+            >
+              {scanResult.type === 'success' ? 'Done' : 'Close'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes popupIn {
+          from { opacity: 0; transform: scale(0.9); }
+          to { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
     </div>
   );
 }
