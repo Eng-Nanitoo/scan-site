@@ -115,12 +115,6 @@ export default function Cards() {
           </div>` : ''}
         </div>
       </div>
-      <div style="padding:24px 24px 0">
-        <div style="background:#F3F4F6;border-radius:12px;padding:12px 16px">
-          <div style="font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:2px">Guest Name</div>
-          <div style="font-size:18px;font-weight:700;color:#111">${esc(p.guestName)}</div>
-        </div>
-      </div>
       <div style="position:relative;margin:24px 0 0;height:40px">
         <div style="position:absolute;left:-14px;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:50%;background:#F2F3F5;z-index:2"></div>
         <div style="position:absolute;right:-14px;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:50%;background:#F2F3F5;z-index:2"></div>
@@ -280,24 +274,8 @@ export default function Cards() {
       ctx.textBaseline = 'middle';
       ctx.fillText(props.qrCenterInitial, qrCX, qrCY);
 
-      // Guest name box
-      y = qrDrawY + qrSize + 24;
-      const nameBoxH = 56;
-      ctx.fillStyle = '#F3F4F6';
-      roundRect(ctx, PAD + 24, y, cardW - 48, nameBoxH, 12);
-      ctx.fill();
-      ctx.fillStyle = '#6B7280';
-      ctx.font = '600 11px -apple-system, BlinkMacSystemFont, sans-serif';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'top';
-      ctx.letterSpacing = '1px';
-      ctx.fillText('GUEST NAME', PAD + 40, y + 10);
-      ctx.fillStyle = '#111111';
-      ctx.font = '700 18px -apple-system, BlinkMacSystemFont, sans-serif';
-      ctx.fillText(truncate(ctx, props.guestName, cardW - 80), PAD + 40, y + 30);
-
       // Divider
-      y += nameBoxH + 24;
+      y = qrDrawY + qrSize + 24;
       ctx.setLineDash([6, 4]);
       ctx.strokeStyle = '#D1D5DB';
       ctx.lineWidth = 2;

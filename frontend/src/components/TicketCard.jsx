@@ -119,21 +119,6 @@ export default function TicketCard({
           </div>
         </div>
 
-        {/* Guest name */}
-        <div style={{ padding: '24px 24px 0' }}>
-          <div style={{ background: COLORS.grayBg, borderRadius: 12, padding: '12px 16px' }}>
-            <div style={{
-              fontSize: 11, fontWeight: 600, color: COLORS.grayLabel,
-              textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 2,
-            }}>
-              Guest Name
-            </div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.blackText }}>
-              {guestName}
-            </div>
-          </div>
-        </div>
-
         {/* Divider with notches */}
         <div style={{ position: 'relative', margin: '24px 0 0', height: 40 }}>
           <div style={{
