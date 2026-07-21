@@ -8,6 +8,7 @@ import Cards from './pages/Cards';
 import GenerateCards from './pages/GenerateCards';
 import Users from './pages/Users';
 import Settings from './pages/Settings';
+import TicketDemo from './pages/TicketDemo';
 import Layout from './components/Layout';
 
 const Scanner = lazy(() => import('./pages/Scanner'));
@@ -63,6 +64,8 @@ export default function App() {
           </Suspense>
         </ProtectedRoute>
       } />
+
+      <Route path="/ticket-demo" element={<TicketDemo />} />
 
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
