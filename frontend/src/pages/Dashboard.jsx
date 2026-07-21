@@ -101,7 +101,7 @@ export default function Dashboard() {
         <div className="stats-grid">
           <StatSkeleton /><StatSkeleton /><StatSkeleton /><StatSkeleton />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
+        <div className="dashboard-columns" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
           <div className="recent-scans">
             <div className="section-header">
               <div className="section-icon"><ScanLine size={18} /></div>
@@ -168,7 +168,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
+      <div className="dashboard-columns" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
         <div className="recent-scans">
           <div className="section-header">
             <div className="section-icon"><ScanLine size={18} /></div>

@@ -1139,6 +1139,85 @@ textarea::placeholder {
   .scanner-box {
     border-radius: var(--radius);
   }
+
+  .dashboard-columns {
+    grid-template-columns: 1fr !important;
+  }
+
+  .scanner-topbar {
+    padding: 0.75rem 1rem !important;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .scanner-topbar-right {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .settings-logo-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .settings-name-row {
+    flex-direction: column;
+  }
+
+  .settings-name-row .btn {
+    width: 100%;
+  }
+
+  .users-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .users-table table {
+    min-width: 480px;
+  }
+
+  .activity-header-row {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .section-header {
+    flex-wrap: wrap;
+  }
+
+  .auth-card {
+    margin: 1rem;
+    padding: 1.5rem;
+  }
+
+  .page-header {
+    margin-bottom: 1.25rem;
+  }
+
+  .card-actions {
+    flex-wrap: wrap;
+  }
+
+  .card-actions .btn {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 400px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-card {
+    padding: 1rem;
+  }
+
+  .mobile-bottom-nav a {
+    font-size: 0.6rem;
+    padding: 0.3rem 0.4rem;
+  }
 }
 
 @media print {

@@ -37,6 +37,14 @@ export default function Layout() {
           }}>
             {user?.username?.charAt(0).toUpperCase()}
           </div>
+          <button onClick={handleLogout} style={{
+            background: 'transparent', border: '1px solid var(--border)',
+            borderRadius: 8, width: 32, height: 32, display: 'flex',
+            alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)',
+            cursor: 'pointer', padding: 0
+          }}>
+            <LogOut size={16} />
+          </button>
         </div>
       </div>
 

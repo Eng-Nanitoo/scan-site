@@ -116,8 +116,7 @@ export default function Activity() {
       </div>
 
       <div className="recent-scans">
-        <div className="section-header">
-          <div className="section-icon">
+        <div className="section-header activity-header-row">          <div className="section-icon">
             <ActivityIcon size={18} />
           </div>
           <h3>Activity Stream</h3>

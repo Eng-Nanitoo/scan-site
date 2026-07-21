@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotify } from '../contexts/NotificationContext';
+import QRCode from 'qrcode';
 import {
   CreditCard,
   Plus,
@@ -84,8 +85,11 @@ export default function Cards() {
   const getQrUrl = (key, size) =>
     `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${key}`;
 
-  const printCard = (card) => {
-    const qrUrl = getQrUrl(card.unique_key, 150);
+  const printCard = async (card) => {
+    const qrUrl = await QRCode.toDataURL(card.unique_key, {
+      width: 300, margin: 2,
+      color: { dark: '#000000', light: '#ffffff' }
+    });
     const logoSrc = settings.logo_url || '';
     const eventName = settings.event_name || 'Graduation Party';
 
@@ -117,84 +121,113 @@ export default function Cards() {
     printWindow.print();
   };
 
-  const downloadCard = (card) => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 700;
-    canvas.height = 1000;
-    const ctx = canvas.getContext('2d');
+  const downloadCard = async (card) => {
+    try {
+      const qrDataUrl = await QRCode.toDataURL(card.unique_key, {
+        width: 300,
+        margin: 2,
+        color: { dark: '#000000', light: '#ffffff' }
+      });
 
-    const gradient = ctx.createLinearGradient(0, 0, 700, 1000);
-    gradient.addColorStop(0, '#1a1a2e');
-    gradient.addColorStop(1, '#16213e');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 700, 1000);
+      const canvas = document.createElement('canvas');
+      canvas.width = 700;
+      canvas.height = 1000;
+      const ctx = canvas.getContext('2d');
 
-    const eventName = settings.event_name || 'Graduation Party';
-    ctx.fillStyle = 'white';
-    ctx.font = 'bold 48px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(eventName, 350, 120);
+      const gradient = ctx.createLinearGradient(0, 0, 700, 1000);
+      gradient.addColorStop(0, '#1a1a2e');
+      gradient.addColorStop(1, '#16213e');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 700, 1000);
 
-    ctx.font = '36px Arial';
-    ctx.fillText(card.guest_name, 350, 200);
-
-    const qrImg = new Image();
-    qrImg.crossOrigin = 'anonymous';
-    qrImg.src = getQrUrl(card.unique_key, 300);
-
-    const drawCard = (logoImg) => {
-      if (logoImg) {
-        ctx.save();
-        ctx.beginPath();
-        ctx.roundRect(200, 260, 300, 300, 24);
-        ctx.clip();
-        ctx.drawImage(logoImg, 200, 260, 300, 300);
-        ctx.restore();
-
-        ctx.drawImage(qrImg, 280, 380, 140, 140);
-      } else {
-        ctx.fillStyle = 'white';
-        ctx.beginPath();
-        ctx.roundRect(200, 280, 300, 300, 16);
-        ctx.fill();
-
-        ctx.drawImage(qrImg, 275, 350, 150, 150);
-      }
-
-      ctx.fillStyle = '#666';
-      ctx.font = '20px Arial';
+      const eventName = settings.event_name || 'Graduation Party';
+      ctx.fillStyle = 'white';
+      ctx.font = 'bold 48px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText('Scan at entrance', 350, 720);
+      ctx.fillText(eventName, 350, 120);
 
-      const link = document.createElement('a');
-      link.download = `card-${card.guest_name}.png`;
-      link.href = canvas.toDataURL();
-      link.click();
-    };
+      ctx.font = '36px Arial';
+      ctx.fillText(card.guest_name, 350, 200);
 
-    qrImg.onload = () => {
-      if (settings.logo_url) {
-        const logoImg = new Image();
-        logoImg.crossOrigin = 'anonymous';
-        logoImg.onload = () => drawCard(logoImg);
-        logoImg.onerror = () => drawCard(null);
-        logoImg.src = settings.logo_url;
+      const qrImg = new Image();
+      qrImg.src = qrDataUrl;
+
+      const drawCard = (logoImg) => {
+        if (logoImg) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.roundRect(200, 260, 300, 300, 24);
+          ctx.clip();
+          ctx.drawImage(logoImg, 200, 260, 300, 300);
+          ctx.restore();
+
+          ctx.drawImage(qrImg, 280, 380, 140, 140);
+        } else {
+          ctx.fillStyle = 'white';
+          ctx.beginPath();
+          ctx.roundRect(200, 280, 300, 300, 16);
+          ctx.fill();
+
+          ctx.drawImage(qrImg, 275, 350, 150, 150);
+        }
+
+        ctx.fillStyle = '#666';
+        ctx.font = '20px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Scan at entrance', 350, 720);
+
+        const link = document.createElement('a');
+        link.download = `card-${card.guest_name}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+      };
+
+      if (qrImg.complete) {
+        if (settings.logo_url) {
+          const logoImg = new Image();
+          logoImg.crossOrigin = 'anonymous';
+          logoImg.onload = () => drawCard(logoImg);
+          logoImg.onerror = () => drawCard(null);
+          logoImg.src = settings.logo_url;
+        } else {
+          drawCard(null);
+        }
       } else {
-        drawCard(null);
+        qrImg.onload = () => {
+          if (settings.logo_url) {
+            const logoImg = new Image();
+            logoImg.crossOrigin = 'anonymous';
+            logoImg.onload = () => drawCard(logoImg);
+            logoImg.onerror = () => drawCard(null);
+            logoImg.src = settings.logo_url;
+          } else {
+            drawCard(null);
+          }
+        };
       }
-    };
+    } catch (err) {
+      console.error('Failed to generate QR:', err);
+      notify.error('Failed to generate card image');
+    }
   };
 
-  const printAllCards = () => {
+  const printAllCards = async () => {
     const logoUrl = settings.logo_url ? new URL(settings.logo_url, window.location.origin).href : '';
     const eventName = settings.event_name || 'Graduation Party';
 
+    const qrDataUrls = await Promise.all(
+      cards.map(card => QRCode.toDataURL(card.unique_key, {
+        width: 240, margin: 1,
+        color: { dark: '#000000', light: '#ffffff' }
+      }))
+    );
+
     const buildPage = () => {
-      const ticketsHtml = cards.map(card => `
+      const ticketsHtml = cards.map((card, i) => `
         <div class="ticket">
           ${logoUrl ? `<img class="logo" src="${logoUrl}" crossorigin="anonymous" />` : ''}
           <div class="qr-overlay">
-            <img src="${getQrUrl(card.unique_key, 120)}" width="70" height="70"/>
+            <img src="${qrDataUrls[i]}" width="70" height="70"/>
           </div>
           <div class="guest-label">${card.guest_name}</div>
         </div>

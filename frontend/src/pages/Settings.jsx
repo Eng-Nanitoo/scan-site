@@ -102,8 +102,7 @@ export default function Settings() {
           <h3>Event Logo</h3>
         </div>
 
-        <div className="logo-upload">
-          <div className="logo-preview">
+        <div className="settings-logo-row" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1.5rem' }}>          <div className="logo-preview">
             {logoPreview ? <img src={logoPreview} alt="Logo" /> : <Image size={28} style={{ color: 'var(--text-dim)' }} />}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -129,8 +128,7 @@ export default function Settings() {
           <h3>Event Name</h3>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <input
+        <div className="settings-name-row" style={{ display: 'flex', gap: '0.75rem' }}>          <input
             type="text" value={eventName} onChange={(e) => setEventName(e.target.value)}
             style={{ flex: 1, padding: '0.75rem 1rem', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', fontSize: '0.95rem', color: 'var(--text)', fontFamily: 'inherit' }}
           />

@@ -203,7 +203,7 @@ export default function Scanner() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-      <div style={{ padding: '1rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)' }}>
+      <div className="scanner-topbar" style={{ padding: '1rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div style={{ width: 40, height: 40, background: 'var(--primary-glow)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
             <ScanLine size={20} />
@@ -216,7 +216,7 @@ export default function Scanner() {
             </p>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+        <div className="scanner-topbar-right" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           {user?.role === 'admin' && (
             <button className="btn btn-secondary btn-sm" onClick={() => { stopScanner(); navigate('/'); }}>
               <LayoutDashboard size={14} /> Dashboard
