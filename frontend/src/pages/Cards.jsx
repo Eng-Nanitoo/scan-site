@@ -427,17 +427,19 @@ export default function Cards() {
       ) : (
         <div className="cards-grid">
           {cards.map(card => (
-            <div key={card.id} className="card-item" style={{ overflow: 'visible' }}>
-              <div className="card-preview" style={{
+            <div key={card.id} className="card-item" style={{ overflow: 'hidden' }}>
+              <div style={{
                 padding: 0, overflow: 'hidden',
                 background: 'transparent',
-                borderBottom: 'none',
+                borderBottom: '1px solid var(--border)',
+                display: 'flex', justifyContent: 'center',
+                height: 320,
               }}>
                 <div style={{
                   transform: 'scale(0.42)',
                   transformOrigin: 'top center',
                   width: 680,
-                  marginBottom: -440,
+                  flexShrink: 0,
                   pointerEvents: 'none',
                 }}>
                   <TicketCard {...getTicketProps(card)} embedded />
