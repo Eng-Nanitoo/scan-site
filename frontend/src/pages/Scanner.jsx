@@ -59,37 +59,39 @@ function playSuccess() {
   } catch {}
 }
 
-function playError() {
+function playInvalid() {
   try {
     const ctx = getAudioCtx();
     const now = ctx.currentTime;
-    [220, 180].forEach((freq, i) => {
+    [380, 300, 220].forEach((freq, i) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'square';
       osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.15, now + i * 0.15);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.15 + 0.2);
+      gain.gain.setValueAtTime(0.12, now + i * 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.15);
       osc.connect(gain).connect(ctx.destination);
-      osc.start(now + i * 0.15);
-      osc.stop(now + i * 0.15 + 0.2);
+      osc.start(now + i * 0.1);
+      osc.stop(now + i * 0.1 + 0.15);
     });
   } catch {}
 }
 
-function playWarning() {
+function playAlreadyScanned() {
   try {
     const ctx = getAudioCtx();
     const now = ctx.currentTime;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    osc.type = 'sawtooth';
-    osc.frequency.value = 200;
-    gain.gain.setValueAtTime(0.12, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    osc.type = 'triangle';
+    osc.frequency.value = 440;
+    osc.frequency.setValueAtTime(440, now);
+    osc.frequency.linearRampToValueAtTime(300, now + 0.35);
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
     osc.connect(gain).connect(ctx.destination);
     osc.start(now);
-    osc.stop(now + 0.3);
+    osc.stop(now + 0.35);
   } catch {}
 }
 
@@ -103,6 +105,7 @@ export default function Scanner() {
   const [queuedScans, setQueuedScans] = useState(getQueue());
   const [syncing, setSyncing] = useState(false);
   const [manualCode, setManualCode] = useState('');
+  const [verifying, setVerifying] = useState(false);
   const html5QrCodeRef = useRef(null);
   const { token, user, logout } = useAuth();
   const socket = useSocket();
@@ -183,6 +186,9 @@ export default function Scanner() {
       return;
     }
 
+    setVerifying(true);
+    setScanResult(null);
+
     try {
       const res = await fetch('/api/scan', {
         method: 'POST',
@@ -191,18 +197,23 @@ export default function Scanner() {
       });
       const data = await res.json();
 
+      await new Promise(r => setTimeout(r, 1000));
+      setVerifying(false);
+
       if (res.ok) {
         playSuccess();
         setScanResult({ type: 'success', message: `${data.guest_name} checked in!`, icon: <CheckCircle2 size={24} /> });
       } else if (data.status === 'already_scanned') {
-        playWarning();
+        playAlreadyScanned();
         setScanResult({ type: 'warning', message: `Already scanned: ${data.guest_name}`, icon: <AlertTriangle size={24} /> });
       } else {
-        playError();
+        playInvalid();
         setScanResult({ type: 'error', message: data.error, icon: <XCircle size={24} /> });
       }
       setTimeout(() => setScanResult(null), 5000);
     } catch (error) {
+      await new Promise(r => setTimeout(r, 1000));
+      setVerifying(false);
       const queue = addToQueue({ unique_key: decodedText });
       setQueuedScans(queue);
       setScanResult({ type: 'warning', message: `Connection failed. Queued (${queue.length} pending)`, icon: <CloudOff size={24} /> });
@@ -425,7 +436,16 @@ export default function Scanner() {
             </div>
           )}
 
-          {scanResult && (
+          {verifying && (
+            <div className="scanner-result warning" style={{ animation: 'pulse 1s ease-in-out infinite' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
+                <Loader2 size={24} className="spin" />
+                <h3 style={{ fontSize: '1.25rem', margin: 0 }}>Verifying...</h3>
+              </div>
+            </div>
+          )}
+
+          {!verifying && scanResult && (
             <div className={`scanner-result ${scanResult.type}`}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
                 {scanResult.icon}
