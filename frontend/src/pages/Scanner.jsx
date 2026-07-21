@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../contexts/SocketContext';
 import { Html5Qrcode } from 'html5-qrcode';
-import { useNotify } from '../contexts/NotificationContext';
 import {
   ScanLine,
   LogOut,
@@ -36,6 +35,64 @@ function addToQueue(item) {
 }
 function clearQueue() { localStorage.removeItem(QUEUE_KEY); }
 
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playSuccess() {
+  try {
+    const ctx = getAudioCtx();
+    const now = ctx.currentTime;
+    [523.25, 659.25].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.3, now + i * 0.12);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.25);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now + i * 0.12);
+      osc.stop(now + i * 0.12 + 0.25);
+    });
+  } catch {}
+}
+
+function playError() {
+  try {
+    const ctx = getAudioCtx();
+    const now = ctx.currentTime;
+    [220, 180].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.15, now + i * 0.15);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.15 + 0.2);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now + i * 0.15);
+      osc.stop(now + i * 0.15 + 0.2);
+    });
+  } catch {}
+}
+
+function playWarning() {
+  try {
+    const ctx = getAudioCtx();
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.value = 200;
+    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.3);
+  } catch {}
+}
+
 export default function Scanner() {
   const [scanResult, setScanResult] = useState(null);
   const [cameraStarted, setCameraStarted] = useState(false);
@@ -48,7 +105,6 @@ export default function Scanner() {
   const [manualCode, setManualCode] = useState('');
   const html5QrCodeRef = useRef(null);
   const { token, user, logout } = useAuth();
-  const notify = useNotify();
   const socket = useSocket();
   const navigate = useNavigate();
 
@@ -72,12 +128,10 @@ export default function Scanner() {
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
-      notify.success('Back online! Syncing queued scans...');
       syncQueuedScans();
     };
     const handleOffline = () => {
       setIsOnline(false);
-      notify.warning('You are offline. Scans will be queued.');
     };
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -91,7 +145,6 @@ export default function Scanner() {
     if (!socket) return;
     const onCheckIn = (data) => {
       setLiveActivity(data);
-      notify.info(`${data.guest_name} checked in`);
       fetchStats();
       setTimeout(() => setLiveActivity(null), 5000);
     };
@@ -118,8 +171,6 @@ export default function Scanner() {
     clearQueue();
     setQueuedScans([]);
     setSyncing(false);
-    if (synced > 0) notify.success(`Synced ${synced} queued scan${synced > 1 ? 's' : ''}`);
-    if (failed > 0) notify.error(`${failed} scan${failed > 1 ? 's' : ''} failed to sync`);
     fetchStats();
   }, [token]);
 
@@ -128,7 +179,6 @@ export default function Scanner() {
       const queue = addToQueue({ unique_key: decodedText });
       setQueuedScans(queue);
       setScanResult({ type: 'warning', message: `Queued for sync (${queue.length} pending)`, icon: <CloudOff size={24} /> });
-      notify.info('Scan queued - will sync when online');
       setTimeout(() => setScanResult(null), 3000);
       return;
     }
@@ -142,21 +192,20 @@ export default function Scanner() {
       const data = await res.json();
 
       if (res.ok) {
+        playSuccess();
         setScanResult({ type: 'success', message: `${data.guest_name} checked in!`, icon: <CheckCircle2 size={24} /> });
-        notify.success(`${data.guest_name} checked in!`);
       } else if (data.status === 'already_scanned') {
+        playWarning();
         setScanResult({ type: 'warning', message: `Already scanned: ${data.guest_name}`, icon: <AlertTriangle size={24} /> });
-        notify.warning('Card already scanned');
       } else {
+        playError();
         setScanResult({ type: 'error', message: data.error, icon: <XCircle size={24} /> });
-        notify.error(data.error);
       }
       setTimeout(() => setScanResult(null), 5000);
     } catch (error) {
       const queue = addToQueue({ unique_key: decodedText });
       setQueuedScans(queue);
       setScanResult({ type: 'warning', message: `Connection failed. Queued (${queue.length} pending)`, icon: <CloudOff size={24} /> });
-      notify.info('Scan queued - will sync when online');
       setTimeout(() => setScanResult(null), 3000);
     }
   }, [isOnline, token]);
@@ -180,14 +229,15 @@ export default function Scanner() {
       setCameraStarted(false);
       const msg = error?.message || String(error);
       if (msg.includes('NotAllowedError') || msg.includes('Permission') || msg.includes('permission')) {
-        notify.error('Camera permission denied. Please allow camera access in Settings > Safari.');
+        setScanResult({ type: 'error', message: 'Camera permission denied. Allow in Settings > Safari.', icon: <XCircle size={24} /> });
       } else if (msg.includes('NotFoundError') || msg.includes('not found')) {
-        notify.error('No camera found on this device.');
+        setScanResult({ type: 'error', message: 'No camera found on this device.', icon: <XCircle size={24} /> });
       } else if (msg.includes('NotReadableError') || msg.includes('could not start') || msg.includes('Could not start')) {
-        notify.error('Camera is in use by another app. Close other camera apps and try again.');
+        setScanResult({ type: 'error', message: 'Camera in use by another app.', icon: <XCircle size={24} /> });
       } else {
-        notify.error('Camera error: ' + msg);
+        setScanResult({ type: 'error', message: 'Camera error: ' + msg, icon: <XCircle size={24} /> });
       }
+      setTimeout(() => setScanResult(null), 5000);
     }
   };
 

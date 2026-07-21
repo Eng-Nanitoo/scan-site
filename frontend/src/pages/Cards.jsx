@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useNotify } from '../contexts/NotificationContext';
 import TicketCard from '../components/TicketCard';
 import QRCode from 'qrcode';
 import {
@@ -21,7 +20,6 @@ export default function Cards() {
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState({});
   const { token } = useAuth();
-  const notify = useNotify();
 
   useEffect(() => {
     fetchCards();
@@ -60,9 +58,8 @@ export default function Cards() {
         headers: { Authorization: `Bearer ${token}` }
       });
       setCards(cards.filter(c => c.id !== id));
-      notify.success('Card deleted');
     } catch (error) {
-      notify.error('Failed to delete card');
+      console.error('Failed to delete card');
     }
   };
 
@@ -76,9 +73,8 @@ export default function Cards() {
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
       setCards([]);
-      notify.success(`Deleted ${data.count} cards`);
     } catch (error) {
-      notify.error('Failed to delete cards');
+      console.error('Failed to delete cards');
     }
   };
 
@@ -365,7 +361,7 @@ export default function Cards() {
       link.click();
     } catch (err) {
       console.error('Download failed:', err);
-      notify.error('Failed to generate ticket image');
+      console.error('Failed to generate ticket image');
     }
   };
 

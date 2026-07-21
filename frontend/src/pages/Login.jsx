@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useNotify } from '../contexts/NotificationContext';
 import { GraduationCap, User, Lock, Loader2 } from 'lucide-react';
 
 export default function Login() {
@@ -9,7 +8,6 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
-  const notify = useNotify();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -17,10 +15,9 @@ export default function Login() {
     setLoading(true);
     try {
       const user = await login(username, password);
-      notify.success('Welcome back!');
       navigate(user.role === 'admin' ? '/' : '/scanner');
     } catch (error) {
-      notify.error(error.message);
+      console.error(error.message);
     } finally {
       setLoading(false);
     }

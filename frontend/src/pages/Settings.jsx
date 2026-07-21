@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useNotify } from '../contexts/NotificationContext';
 import {
   Upload,
   Image,
@@ -36,7 +35,6 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const { token } = useAuth();
-  const notify = useNotify();
 
   useEffect(() => { fetchSettings(); }, []);
 
@@ -81,8 +79,7 @@ export default function Settings() {
       const data = await res.json();
       setSettings(prev => ({ ...prev, logo_url: data.logoUrl }));
       setLogoFile(null);
-      notify.success('Logo uploaded');
-    } catch (error) { notify.error('Failed to upload logo'); }
+    } catch (error) { console.error('Failed to upload logo'); }
     finally { setUploading(false); }
   };
 
@@ -95,8 +92,7 @@ export default function Settings() {
       });
       if (!res.ok) throw new Error('Update failed');
       setSettings(await res.json());
-      notify.success('Settings updated');
-    } catch (error) { notify.error('Failed to update settings'); }
+    } catch (error) { console.error('Failed to update settings'); }
   };
 
   if (loading) {

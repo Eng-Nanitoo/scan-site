@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useNotify } from '../contexts/NotificationContext';
 import {
   PlusCircle,
   List,
@@ -19,7 +18,6 @@ export default function GenerateCards() {
   const [loading, setLoading] = useState(false);
   const [generated, setGenerated] = useState([]);
   const { token } = useAuth();
-  const notify = useNotify();
   const navigate = useNavigate();
 
   const handleGenerate = async (e) => {
@@ -29,7 +27,7 @@ export default function GenerateCards() {
       let body = {};
       if (mode === 'names') {
         const names = namesText.split('\n').map(n => n.trim()).filter(n => n.length > 0);
-        if (names.length === 0) { notify.error('Please enter at least one name'); setLoading(false); return; }
+        if (names.length === 0) { setLoading(false); return; }
         body.guest_names = names;
       } else {
         body.count = count;
@@ -44,9 +42,8 @@ export default function GenerateCards() {
       if (!res.ok) { const err = await res.json(); throw new Error(err.error); }
       const cards = await res.json();
       setGenerated(cards);
-      notify.success(`Generated ${cards.length} cards!`);
     } catch (error) {
-      notify.error(error.message);
+      console.error(error.message);
     } finally {
       setLoading(false);
     }

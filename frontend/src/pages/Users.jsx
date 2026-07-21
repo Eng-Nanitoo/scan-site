@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useNotify } from '../contexts/NotificationContext';
 import {
   Users as UsersIcon,
   UserPlus,
@@ -28,7 +27,6 @@ export default function Users() {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('scanner');
   const { token } = useAuth();
-  const notify = useNotify();
 
   useEffect(() => { fetchUsers(); }, []);
 
@@ -45,7 +43,7 @@ export default function Users() {
 
   const addUser = async (e) => {
     e.preventDefault();
-    if (!username || !password) { notify.error('Username and password required'); return; }
+    if (!username || !password) return;
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
@@ -53,10 +51,9 @@ export default function Users() {
         body: JSON.stringify({ username, password, role })
       });
       if (!res.ok) { const err = await res.json(); throw new Error(err.error); }
-      notify.success('User created');
       setUsername(''); setPassword(''); setRole('scanner');
       fetchUsers();
-    } catch (error) { notify.error(error.message); }
+    } catch (error) { console.error(error.message); }
   };
 
   const deleteUser = async (id) => {
@@ -66,9 +63,8 @@ export default function Users() {
         method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) { const err = await res.json(); throw new Error(err.error); }
-      notify.success('User deleted');
       fetchUsers();
-    } catch (error) { notify.error(error.message); }
+    } catch (error) { console.error(error.message); }
   };
 
   return (

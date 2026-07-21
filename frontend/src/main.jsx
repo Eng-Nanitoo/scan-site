@@ -4,7 +4,6 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import { AuthProvider } from './contexts/AuthContext'
 import { SocketProvider } from './contexts/SocketContext'
-import { NotificationProvider } from './contexts/NotificationContext'
 import ErrorBoundary from './components/ErrorBoundary'
 import './index.css'
 
@@ -13,11 +12,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
       <BrowserRouter>
         <AuthProvider>
-          <NotificationProvider>
-            <SocketProvider>
-              <App />
-            </SocketProvider>
-          </NotificationProvider>
+          <SocketProvider>
+            <App />
+          </SocketProvider>
         </AuthProvider>
       </BrowserRouter>
     </React.StrictMode>
