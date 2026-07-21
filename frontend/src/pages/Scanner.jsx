@@ -61,6 +61,7 @@ function playSuccess() {
 
 function playInvalid() {
   try {
+    navigator.vibrate([100, 50, 100]);
     const ctx = getAudioCtx();
     const now = ctx.currentTime;
     [380, 300, 220].forEach((freq, i) => {
