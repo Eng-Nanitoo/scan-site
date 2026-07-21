@@ -61,9 +61,18 @@ router.get('/settings', async (req, res) => {
 
 router.put('/settings', authMiddleware, adminOnly, async (req, res) => {
   try {
-    const { event_name } = req.body;
+    const {
+      event_name, event_subtitle, event_date, event_time,
+      event_location_line1, event_location_line2, org_logo_text
+    } = req.body;
 
-    await pool.query('UPDATE settings SET event_name = $1 WHERE id = 1', [event_name]);
+    await pool.query(`UPDATE settings SET
+      event_name = $1, event_subtitle = $2, event_date = $3, event_time = $4,
+      event_location_line1 = $5, event_location_line2 = $6, org_logo_text = $7
+      WHERE id = 1`,
+      [event_name, event_subtitle, event_date, event_time,
+       event_location_line1, event_location_line2, org_logo_text]
+    );
 
     const result = await pool.query('SELECT * FROM settings WHERE id = 1');
     res.json(result.rows[0]);

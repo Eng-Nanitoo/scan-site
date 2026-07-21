@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotify } from '../contexts/NotificationContext';
-import QRCode from 'qrcode';
+import TicketCard from '../components/TicketCard';
 import {
   CreditCard,
   Plus,
@@ -18,10 +18,9 @@ import {
 export default function Cards() {
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [settings, setSettings] = useState({ event_name: 'Graduation Party', logo_url: null });
+  const [settings, setSettings] = useState({});
   const { token } = useAuth();
   const notify = useNotify();
-
 
   useEffect(() => {
     fetchCards();
@@ -46,7 +45,7 @@ export default function Cards() {
     try {
       const res = await fetch('/api/cards/settings');
       const data = await res.json();
-      setSettings({ event_name: data.event_name || 'Graduation Party', logo_url: data.logo_url || null });
+      setSettings(data);
     } catch (error) {
       console.error('Failed to fetch settings:', error);
     }
@@ -82,208 +81,280 @@ export default function Cards() {
     }
   };
 
-  const getQrUrl = (key, size) =>
-    `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${key}`;
+  const getTicketProps = useCallback((card) => ({
+    orgLogoText: settings.org_logo_text || '',
+    eventTitle: settings.event_name || 'Graduation Party',
+    eventSubtitle: settings.event_subtitle || '',
+    qrValue: card.unique_key,
+    qrCenterInitial: card.guest_name?.charAt(0)?.toUpperCase() || '',
+    guestName: card.guest_name,
+    date: settings.event_date || '',
+    time: settings.event_time || '',
+    locationLine1: settings.event_location_line1 || '',
+    locationLine2: settings.event_location_line2 || '',
+  }), [settings]);
 
-  const printCard = async (card) => {
-    const qrUrl = await QRCode.toDataURL(card.unique_key, {
-      width: 300, margin: 2,
-      color: { dark: '#000000', light: '#ffffff' }
-    });
-    const logoSrc = settings.logo_url || '';
-    const eventName = settings.event_name || 'Graduation Party';
-
+  const printCard = (card) => {
+    const props = getTicketProps(card);
     const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head><title>Card - ${card.guest_name}</title>
-        <style>
-          @page{size:landscape;margin:10mm}
-          body{margin:0;padding:0;font-family:Arial,sans-serif;background:#0f0f12;display:flex;align-items:center;justify-content:center;min-height:100vh}
-          .card{width:340px;height:210px;background:white;border-radius:14px;position:relative;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center}
-          .card img.logo{width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0}
-          .qr-overlay{position:relative;z-index:2;background:white;padding:6px;border-radius:10px;box-shadow:0 2px 12px rgba(0,0,0,0.25)}
-          .qr-overlay img{display:block}
-          .guest-label{position:absolute;bottom:8px;left:0;right:0;text-align:center;z-index:2;font-size:11px;font-weight:bold;color:white;text-shadow:0 1px 4px rgba(0,0,0,0.7);letter-spacing:0.5px}
-        </style></head>
-        <body>
-          <div class="card">
-            ${logoSrc ? `<img class="logo" src="${logoSrc}" alt="Logo" />` : ''}
-            <div class="qr-overlay">
-              <img src="${qrUrl}" width="90" height="90"/>
-            </div>
-            <div class="guest-label">${card.guest_name}</div>
-          </div>
-        </body></html>
-    `);
+    printWindow.document.write(`<!DOCTYPE html><html><head>
+      <title>Ticket - ${card.guest_name}</title>
+      <style>
+        @page{size:portrait;margin:0}
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+          display:flex;align-items:center;justify-content:center;min-height:100vh;background:#F2F3F5}
+      </style>
+      <script src="https://unpkg.com/react@18/umd/react.production.min.js"><\/script>
+      <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"><\/script>
+      <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
+    </head><body>
+      <div id="root"></div>
+      <script type="text/babel">
+        const { useState, useEffect } = React;
+        function QrImg({ value, size }) {
+          const [url, setUrl] = useState('');
+          useEffect(() => {
+            const s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js';
+            s.onload = () => {
+              window.QRCode.toDataURL(value, { width: size, margin: 0,
+                color: { dark: '#000000', light: '#ffffff' },
+                errorCorrectionLevel: 'H' }).then(setUrl);
+            };
+            document.head.appendChild(s);
+          }, [value, size]);
+          return url ? React.createElement('img', { src: url, width: size, height: size,
+            style: { display: 'block', borderRadius: 8 } }) :
+            React.createElement('div', { style: { width: size, height: size,
+              background: '#e5e7eb', borderRadius: 8 } });
+        }
+        function Ticket() {
+          const [ready, setReady] = useState(false);
+          useEffect(() => { setTimeout(() => setReady(true), 500); }, []);
+          if (!ready) return null;
+          ReactDOM.createRoot(document.getElementById('root')).render(
+            React.createElement(window.TicketCard.default, ${JSON.stringify({ ...props, embedded: false })})
+          );
+          setTimeout(() => window.print(), 300);
+          return null;
+        }
+        ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(Ticket));
+      <\/script>
+    </body></html>`);
     printWindow.document.close();
-    printWindow.print();
+  };
+
+  const printAllCards = () => {
+    const allProps = cards.map(card => getTicketProps(card));
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`<!DOCTYPE html><html><head>
+      <title>All Tickets</title>
+      <style>
+        @page{size:A4 portrait;margin:10mm}
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+          background:#F2F3F5}
+        .ticket-wrap{width:100%;page-break-inside:avoid;break-inside:avoid;
+          display:flex;justify-content:center;padding:10mm 0}
+      </style>
+      <script src="https://unpkg.com/react@18/umd/react.production.min.js"><\/script>
+      <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"><\/script>
+      <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
+    </head><body>
+      <div id="root"></div>
+      <script type="text/babel">
+        const allProps = ${JSON.stringify(allProps.map(p => ({ ...p, embedded: true })))};
+        function App() {
+          const [ready, setReady] = React.useState(false);
+          React.useEffect(() => { setTimeout(() => setReady(true), 800); }, []);
+          if (!ready) return null;
+          const el = React.createElement;
+          const root = ReactDOM.createRoot(document.getElementById('root'));
+          root.render(el('div', null,
+            allProps.map((p, i) => el('div', { key: i, className: 'ticket-wrap' },
+              el(window.TicketCard.default, p)
+            ))
+          ));
+          setTimeout(() => window.print(), 400);
+          return null;
+        }
+        ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+      <\/script>
+    </body></html>`);
+    printWindow.document.close();
   };
 
   const downloadCard = async (card) => {
     try {
+      const props = getTicketProps(card);
+      const QRCode = (await import('qrcode')).default;
       const qrDataUrl = await QRCode.toDataURL(card.unique_key, {
-        width: 300,
-        margin: 2,
-        color: { dark: '#000000', light: '#ffffff' }
+        width: 460, margin: 0,
+        color: { dark: '#000000', light: '#ffffff' },
+        errorCorrectionLevel: 'H',
       });
 
+      const W = 680, PAD = 40;
       const canvas = document.createElement('canvas');
-      canvas.width = 700;
-      canvas.height = 1000;
+      canvas.width = W;
       const ctx = canvas.getContext('2d');
 
-      const gradient = ctx.createLinearGradient(0, 0, 700, 1000);
-      gradient.addColorStop(0, '#1a1a2e');
-      gradient.addColorStop(1, '#16213e');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, 700, 1000);
+      // Background
+      ctx.fillStyle = '#F2F3F5';
+      ctx.fillRect(0, 0, W, 1200);
 
-      const eventName = settings.event_name || 'Graduation Party';
-      ctx.fillStyle = 'white';
-      ctx.font = 'bold 48px Arial';
+      // Card
+      const cardX = PAD, cardTop = 20, cardW = W - PAD * 2;
+      const radius = 24;
+
+      // Badge
+      const badgeR = 32;
+      const badgeCX = W / 2, badgeCY = cardTop + badgeR;
+      ctx.beginPath();
+      ctx.arc(badgeCX, badgeCY, badgeR, 0, Math.PI * 2);
+      ctx.fillStyle = '#111827';
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = '700 14px -apple-system, BlinkMacSystemFont, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(eventName, 350, 120);
+      ctx.textBaseline = 'middle';
+      ctx.fillText(props.orgLogoText, badgeCX, badgeCY);
 
-      ctx.font = '36px Arial';
-      ctx.fillText(card.guest_name, 350, 200);
+      // Card white rect
+      const cardY = cardTop + badgeR + 8;
+      ctx.fillStyle = '#fff';
+      roundRect(ctx, cardX, cardY, cardW, 800, radius);
+      ctx.fill();
+      ctx.shadowColor = 'rgba(0,0,0,0.08)';
+      ctx.shadowBlur = 24;
+      ctx.shadowOffsetY = 4;
+
+      // Title
+      let y = cardY + 56;
+      ctx.fillStyle = '#111111';
+      ctx.font = '700 22px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(truncate(ctx, props.eventTitle, cardW - 40), W / 2, y);
+
+      // Subtitle
+      if (props.eventSubtitle) {
+        y += 28;
+        ctx.fillStyle = '#2563EB';
+        ctx.font = '500 15px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.fillText(truncate(ctx, props.eventSubtitle, cardW - 40), W / 2, y);
+      }
+
+      // QR
+      y += 24;
+      const qrSize = 230;
+      const qrBoxSize = qrSize + 32;
+      const qrBoxX = (W - qrBoxSize) / 2;
+      ctx.fillStyle = '#F3F4F6';
+      roundRect(ctx, qrBoxX, y, qrBoxSize, qrBoxSize, 16);
+      ctx.fill();
 
       const qrImg = new Image();
       qrImg.src = qrDataUrl;
+      await new Promise(r => { qrImg.onload = r; qrImg.onerror = r; });
+      const qrDrawX = (W - qrSize) / 2;
+      const qrDrawY = y + 16;
+      ctx.drawImage(qrImg, qrDrawX, qrDrawY, qrSize, qrSize);
 
-      const drawCard = (logoImg) => {
-        if (logoImg) {
-          ctx.save();
-          ctx.beginPath();
-          ctx.roundRect(200, 260, 300, 300, 24);
-          ctx.clip();
-          ctx.drawImage(logoImg, 200, 260, 300, 300);
-          ctx.restore();
+      // QR center badge
+      const qrCX = W / 2, qrCY = qrDrawY + qrSize / 2;
+      ctx.beginPath();
+      ctx.arc(qrCX, qrCY, 24, 0, Math.PI * 2);
+      ctx.fillStyle = '#111827';
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = '700 18px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(props.qrCenterInitial, qrCX, qrCY);
 
-          ctx.drawImage(qrImg, 280, 380, 140, 140);
-        } else {
-          ctx.fillStyle = 'white';
-          ctx.beginPath();
-          ctx.roundRect(200, 280, 300, 300, 16);
-          ctx.fill();
+      // Guest name box
+      y = qrDrawY + qrSize + 24;
+      const nameBoxH = 56;
+      ctx.fillStyle = '#F3F4F6';
+      roundRect(ctx, PAD + 24, y, cardW - 48, nameBoxH, 12);
+      ctx.fill();
+      ctx.fillStyle = '#6B7280';
+      ctx.font = '600 11px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.letterSpacing = '1px';
+      ctx.fillText('GUEST NAME', PAD + 40, y + 10);
+      ctx.fillStyle = '#111111';
+      ctx.font = '700 18px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.fillText(truncate(ctx, props.guestName, cardW - 80), PAD + 40, y + 30);
 
-          ctx.drawImage(qrImg, 275, 350, 150, 150);
-        }
+      // Divider
+      y += nameBoxH + 24;
+      ctx.setLineDash([6, 4]);
+      ctx.strokeStyle = '#D1D5DB';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(PAD + 48, y);
+      ctx.lineTo(W - PAD - 48, y);
+      ctx.stroke();
+      ctx.setLineDash([]);
 
-        ctx.fillStyle = '#666';
-        ctx.font = '20px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('Scan at entrance', 350, 720);
+      // Scissors
+      ctx.fillStyle = '#6B7280';
+      ctx.font = '16px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('✂', W / 2, y);
 
-        const link = document.createElement('a');
-        link.download = `card-${card.guest_name}.png`;
-        link.href = canvas.toDataURL();
-        link.click();
-      };
+      // Notches
+      ctx.fillStyle = '#F2F3F5';
+      ctx.beginPath();
+      ctx.arc(cardX, y, 14, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(cardX + cardW, y, 14, 0, Math.PI * 2);
+      ctx.fill();
 
-      if (qrImg.complete) {
-        if (settings.logo_url) {
-          const logoImg = new Image();
-          logoImg.crossOrigin = 'anonymous';
-          logoImg.onload = () => drawCard(logoImg);
-          logoImg.onerror = () => drawCard(null);
-          logoImg.src = settings.logo_url;
-        } else {
-          drawCard(null);
-        }
-      } else {
-        qrImg.onload = () => {
-          if (settings.logo_url) {
-            const logoImg = new Image();
-            logoImg.crossOrigin = 'anonymous';
-            logoImg.onload = () => drawCard(logoImg);
-            logoImg.onerror = () => drawCard(null);
-            logoImg.src = settings.logo_url;
-          } else {
-            drawCard(null);
-          }
-        };
-      }
+      // Footer
+      y += 28;
+      const colW = (cardW - 48) / 2;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = '#6B7280';
+      ctx.font = '600 11px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.fillText('DATE & TIME', PAD + 24, y);
+      ctx.fillStyle = '#111111';
+      ctx.font = '700 15px -apple-system, BlinkMacSystemFont, sans-serif';
+      if (props.date) ctx.fillText(props.date, PAD + 24, y + 18);
+      if (props.time) ctx.fillText(props.time, PAD + 24, y + 36);
+
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#6B7280';
+      ctx.font = '600 11px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.fillText('LOCATION', W - PAD - 24, y);
+      ctx.fillStyle = '#111111';
+      ctx.font = '700 15px -apple-system, BlinkMacSystemFont, sans-serif';
+      if (props.locationLine1) ctx.fillText(truncate(ctx, props.locationLine1, colW), W - PAD - 24, y + 18);
+      if (props.locationLine2) ctx.fillText(truncate(ctx, props.locationLine2, colW), W - PAD - 24, y + 36);
+
+      // Clip card to rounded rect and export
+      const finalH = y + 60;
+      const finalCanvas = document.createElement('canvas');
+      finalCanvas.width = W;
+      finalCanvas.height = finalH;
+      const fctx = finalCanvas.getContext('2d');
+      fctx.fillStyle = '#F2F3F5';
+      fctx.fillRect(0, 0, W, finalH);
+      fctx.drawImage(canvas, 0, 0);
+
+      const link = document.createElement('a');
+      link.download = `ticket-${card.guest_name}.png`;
+      link.href = finalCanvas.toDataURL('image/png');
+      link.click();
     } catch (err) {
-      console.error('Failed to generate QR:', err);
-      notify.error('Failed to generate card image');
-    }
-  };
-
-  const printAllCards = async () => {
-    const logoUrl = settings.logo_url ? new URL(settings.logo_url, window.location.origin).href : '';
-    const eventName = settings.event_name || 'Graduation Party';
-
-    const qrDataUrls = await Promise.all(
-      cards.map(card => QRCode.toDataURL(card.unique_key, {
-        width: 240, margin: 1,
-        color: { dark: '#000000', light: '#ffffff' }
-      }))
-    );
-
-    const buildPage = () => {
-      const ticketsHtml = cards.map((card, i) => `
-        <div class="ticket">
-          ${logoUrl ? `<img class="logo" src="${logoUrl}" crossorigin="anonymous" />` : ''}
-          <div class="qr-overlay">
-            <img src="${qrDataUrls[i]}" width="70" height="70"/>
-          </div>
-          <div class="guest-label">${card.guest_name}</div>
-        </div>
-      `).join('');
-
-      const printWindow = window.open('', '_blank');
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head><title>All Tickets - ${eventName}</title>
-          <style>
-            @page{size:A4;margin:8mm}
-            *{margin:0;padding:0;box-sizing:border-box}
-            body{font-family:Arial,sans-serif;background:white}
-            .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6mm;padding:2mm}
-            .ticket{position:relative;width:100%;aspect-ratio:3/2;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.15);break-inside:avoid}
-            .ticket .logo{width:100%;height:100%;object-fit:cover;display:block}
-            .ticket .qr-overlay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:4px;border-radius:6px;box-shadow:0 1px 6px rgba(0,0,0,0.2)}
-            .ticket .qr-overlay img{display:block}
-            .ticket .guest-label{position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:8px;font-weight:bold;color:white;text-shadow:0 1px 3px rgba(0,0,0,0.7);letter-spacing:0.3px}
-            ${!logoUrl ? `
-            .ticket{background:linear-gradient(135deg,#1a1a2e,#16213e);display:flex;align-items:center;justify-content:center}
-            .ticket .guest-label{color:#a0a0c0;text-shadow:none;font-size:9px;bottom:8px}
-            ` : ''}
-            @media print{
-              body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-            }
-          </style></head>
-          <body>
-            <div class="grid">
-              ${ticketsHtml}
-            </div>
-            <script>
-              let loaded = 0;
-              const total = document.querySelectorAll('img').length;
-              if (total === 0) { window.onload = function() { window.print(); }; }
-              else {
-                document.querySelectorAll('img').forEach(function(img) {
-                  if (img.complete) { loaded++; if (loaded >= total) window.print(); }
-                  else { img.onload = function() { loaded++; if (loaded >= total) window.print(); }; img.onerror = function() { loaded++; if (loaded >= total) window.print(); }; }
-                });
-              }
-            </script>
-          </body></html>
-      `);
-      printWindow.document.close();
-    };
-
-    if (logoUrl) {
-      const preload = new Image();
-      preload.crossOrigin = 'anonymous';
-      preload.onload = buildPage;
-      preload.onerror = buildPage;
-      preload.src = logoUrl;
-    } else {
-      buildPage();
+      console.error('Download failed:', err);
+      notify.error('Failed to generate ticket image');
     }
   };
 
@@ -349,41 +420,20 @@ export default function Cards() {
       ) : (
         <div className="cards-grid">
           {cards.map(card => (
-            <div key={card.id} className="card-item">
-              <div className="card-preview">
-                <h3>{settings.event_name || 'Graduation Party'}</h3>
+            <div key={card.id} className="card-item" style={{ overflow: 'visible' }}>
+              <div className="card-preview" style={{
+                padding: 0, overflow: 'hidden',
+                background: 'transparent',
+                borderBottom: 'none',
+              }}>
                 <div style={{
-                  position: 'relative',
-                  width: settings.logo_url ? 160 : 'auto',
-                  height: settings.logo_url ? 160 : 'auto',
-                  margin: '0 auto'
+                  transform: 'scale(0.42)',
+                  transformOrigin: 'top center',
+                  width: 680,
+                  marginBottom: -440,
+                  pointerEvents: 'none',
                 }}>
-                  {settings.logo_url ? (
-                    <>
-                      <img
-                        src={settings.logo_url}
-                        alt="Logo"
-                        style={{ width: 160, height: 160, objectFit: 'contain', borderRadius: 12 }}
-                      />
-                      <div style={{
-                        position: 'absolute', top: '50%', left: '50%',
-                        transform: 'translate(-50%, -50%)'
-                      }}>
-                        <img
-                          src={getQrUrl(card.unique_key, 80)}
-                          alt="QR Code" width="80" height="80"
-                          style={{ borderRadius: 6, boxShadow: '0 2px 8px rgba(0,0,0,0.4)' }}
-                        />
-                      </div>
-                    </>
-                  ) : (
-                    <div className="qr-placeholder">
-                      <img
-                        src={getQrUrl(card.unique_key, 110)}
-                        alt="QR Code" width="110" height="110"
-                      />
-                    </div>
-                  )}
+                  <TicketCard {...getTicketProps(card)} embedded />
                 </div>
               </div>
               <div className="card-info">
@@ -410,4 +460,26 @@ export default function Cards() {
       )}
     </div>
   );
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function truncate(ctx, text, maxW) {
+  if (ctx.measureText(text).width <= maxW) return text;
+  while (text.length > 0 && ctx.measureText(text + '…').width > maxW) {
+    text = text.slice(0, -1);
+  }
+  return text + '…';
 }

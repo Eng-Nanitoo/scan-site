@@ -20,6 +20,12 @@ async function initDB() {
         id SERIAL PRIMARY KEY,
         logo_url TEXT,
         event_name VARCHAR(255) DEFAULT 'Graduation Party',
+        event_subtitle VARCHAR(255) DEFAULT '',
+        event_date VARCHAR(100) DEFAULT '',
+        event_time VARCHAR(100) DEFAULT '',
+        event_location_line1 VARCHAR(255) DEFAULT '',
+        event_location_line2 VARCHAR(255) DEFAULT '',
+        org_logo_text VARCHAR(50) DEFAULT '',
         created_at TIMESTAMP DEFAULT NOW()
       );
 
@@ -48,6 +54,19 @@ async function initDB() {
     const settingsExist = await client.query('SELECT COUNT(*) FROM settings');
     if (parseInt(settingsExist.rows[0].count) === 0) {
       await client.query("INSERT INTO settings (event_name) VALUES ('Graduation Party')");
+    }
+
+    // Add new settings columns if they don't exist (migration for existing DBs)
+    const newCols = [
+      ['event_subtitle', "ALTER TABLE settings ADD COLUMN IF NOT EXISTS event_subtitle VARCHAR(255) DEFAULT ''"],
+      ['event_date', "ALTER TABLE settings ADD COLUMN IF NOT EXISTS event_date VARCHAR(100) DEFAULT ''"],
+      ['event_time', "ALTER TABLE settings ADD COLUMN IF NOT EXISTS event_time VARCHAR(100) DEFAULT ''"],
+      ['event_location_line1', "ALTER TABLE settings ADD COLUMN IF NOT EXISTS event_location_line1 VARCHAR(255) DEFAULT ''"],
+      ['event_location_line2', "ALTER TABLE settings ADD COLUMN IF NOT EXISTS event_location_line2 VARCHAR(255) DEFAULT ''"],
+      ['org_logo_text', "ALTER TABLE settings ADD COLUMN IF NOT EXISTS org_logo_text VARCHAR(50) DEFAULT ''"],
+    ];
+    for (const [, sql] of newCols) {
+      await client.query(sql);
     }
 
     // Fix foreign key constraints to allow user deletion
