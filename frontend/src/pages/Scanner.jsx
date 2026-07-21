@@ -142,6 +142,7 @@ export default function Scanner() {
   const closePopup = useCallback(() => {
     setPopupOpen(false);
     popupOpenRef.current = false;
+    processingRef.current = false;
     setScanResult(null);
   }, []);
 
@@ -197,9 +198,12 @@ export default function Scanner() {
     popupOpenRef.current = true;
   }, []);
 
+  const processingRef = useRef(false);
+
   const onScanSuccess = useCallback(async (decodedText) => {
-    if (popupOpenRef.current) return;
+    if (popupOpenRef.current || processingRef.current) return;
     if (lastScannedKeyRef.current === decodedText && Date.now() - lastScannedTimeRef.current < DUP_IGNORE_MS) return;
+    processingRef.current = true;
 
     if (!isOnline) {
       const card = await getCardByKey(decodedText);
