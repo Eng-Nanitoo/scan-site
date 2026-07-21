@@ -198,6 +198,7 @@ export default function Cards() {
       const W = 680, PAD = 40;
       const canvas = document.createElement('canvas');
       canvas.width = W;
+      canvas.height = 1200;
       const ctx = canvas.getContext('2d');
 
       // Background
