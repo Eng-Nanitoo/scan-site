@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../contexts/SocketContext';
 import { Html5Qrcode } from 'html5-qrcode';
+import { getCardByKey, markCardScannedLocally, getCardsCount } from '../lib/offlineDb';
+import { syncCardsFromServer, syncQueuedScans, syncSettingsFromServer } from '../lib/sync';
 import {
   ScanLine,
   LogOut,
@@ -17,23 +19,13 @@ import {
   CloudOff,
   RefreshCw,
   Camera,
-  Loader2
+  Loader2,
+  Database,
+  Pause
 } from 'lucide-react';
 
-const QUEUE_KEY = 'scan_queue';
-
-function getQueue() {
-  try { return JSON.parse(localStorage.getItem(QUEUE_KEY)) || []; }
-  catch { return []; }
-}
-function saveQueue(queue) { localStorage.setItem(QUEUE_KEY, JSON.stringify(queue)); }
-function addToQueue(item) {
-  const queue = getQueue();
-  queue.push({ ...item, queuedAt: Date.now() });
-  saveQueue(queue);
-  return queue;
-}
-function clearQueue() { localStorage.removeItem(QUEUE_KEY); }
+const SCAN_COOLDOWN_MS = 2500;
+const DUP_IGNORE_MS = 5000;
 
 let audioCtx = null;
 function getAudioCtx() {
@@ -103,11 +95,18 @@ export default function Scanner() {
   const [stats, setStats] = useState(null);
   const [liveActivity, setLiveActivity] = useState(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [queuedScans, setQueuedScans] = useState(getQueue());
+  const [queuedScans, setQueuedScans] = useState([]);
   const [syncing, setSyncing] = useState(false);
   const [manualCode, setManualCode] = useState('');
   const [verifying, setVerifying] = useState(false);
+  const [cachedCards, setCachedCards] = useState(0);
+  const [cooldownActive, setCooldownActive] = useState(false);
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const html5QrCodeRef = useRef(null);
+  const cooldownUntilRef = useRef(0);
+  const lastScannedKeyRef = useRef(null);
+  const lastScannedTimeRef = useRef(0);
+  const cooldownTimerRef = useRef(null);
   const { token, user, logout } = useAuth();
   const socket = useSocket();
   const navigate = useNavigate();
@@ -124,15 +123,54 @@ export default function Scanner() {
     }
   };
 
+  const refreshLocalData = useCallback(async () => {
+    try {
+      const count = await getCardsCount();
+      setCachedCards(count);
+    } catch {}
+  }, []);
+
+  const doSyncQueuedScans = useCallback(async () => {
+    const { getQueue } = await import('../lib/offlineDb');
+    const queue = await getQueue();
+    if (queue.length === 0) return;
+    setSyncing(true);
+    const { synced, failed } = await syncQueuedScans(token);
+    const updatedQueue = await getQueue();
+    setQueuedScans(updatedQueue);
+    setSyncing(false);
+    if (synced > 0) fetchStats();
+    refreshLocalData();
+    return { synced, failed };
+  }, [token, fetchStats, refreshLocalData]);
+
   useEffect(() => {
+    const init = async () => {
+      if (navigator.onLine) {
+        await syncCardsFromServer(token);
+        await syncSettingsFromServer();
+        await doSyncQueuedScans();
+      }
+      await refreshLocalData();
+      const { getQueue } = await import('../lib/offlineDb');
+      const q = await getQueue();
+      setQueuedScans(q);
+    };
+    init();
     fetchStats();
-    return () => stopScanner();
+    return () => {
+      stopScanner();
+      if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
+    };
   }, []);
 
   useEffect(() => {
-    const handleOnline = () => {
+    const handleOnline = async () => {
       setIsOnline(true);
-      syncQueuedScans();
+      await syncCardsFromServer(token);
+      await syncSettingsFromServer();
+      await doSyncQueuedScans();
+      await refreshLocalData();
     };
     const handleOffline = () => {
       setIsOnline(false);
@@ -143,7 +181,7 @@ export default function Scanner() {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [token, doSyncQueuedScans, refreshLocalData]);
 
   useEffect(() => {
     if (!socket) return;
@@ -157,33 +195,61 @@ export default function Scanner() {
     return () => { socket.off('guest_checked_in', onCheckIn); socket.off('stats_updated', fetchStats); };
   }, [socket]);
 
-  const syncQueuedScans = useCallback(async () => {
-    const queue = getQueue();
-    if (queue.length === 0) return;
-    setSyncing(true);
-    let synced = 0, failed = 0;
-    for (const item of queue) {
-      try {
-        const res = await fetch('/api/scan', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ unique_key: item.unique_key })
-        });
-        if (res.ok) synced++; else failed++;
-      } catch { failed++; }
-    }
-    clearQueue();
-    setQueuedScans([]);
-    setSyncing(false);
-    fetchStats();
-  }, [token]);
+  const startCooldown = useCallback(() => {
+    cooldownUntilRef.current = Date.now() + SCAN_COOLDOWN_MS;
+    setCooldownActive(true);
+    setCooldownRemaining(Math.ceil(SCAN_COOLDOWN_MS / 1000));
+
+    if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
+    cooldownTimerRef.current = setInterval(() => {
+      const remaining = cooldownUntilRef.current - Date.now();
+      if (remaining <= 0) {
+        clearInterval(cooldownTimerRef.current);
+        cooldownTimerRef.current = null;
+        setCooldownActive(false);
+        setCooldownRemaining(0);
+      } else {
+        setCooldownRemaining(Math.ceil(remaining / 1000));
+      }
+    }, 200);
+  }, []);
 
   const onScanSuccess = useCallback(async (decodedText) => {
+    if (cooldownActive || Date.now() < cooldownUntilRef.current) return;
+    if (lastScannedKeyRef.current === decodedText && Date.now() - lastScannedTimeRef.current < DUP_IGNORE_MS) return;
+
     if (!isOnline) {
-      const queue = addToQueue({ unique_key: decodedText });
-      setQueuedScans(queue);
-      setScanResult({ type: 'warning', message: `Queued for sync (${queue.length} pending)`, icon: <CloudOff size={24} /> });
-      setTimeout(() => setScanResult(null), 3000);
+      const card = await getCardByKey(decodedText);
+      if (!card) {
+        lastScannedKeyRef.current = decodedText;
+        lastScannedTimeRef.current = Date.now();
+        playInvalid();
+        setScanResult({ type: 'error', message: 'Invalid QR code', icon: <XCircle size={24} /> });
+        startCooldown();
+        setTimeout(() => setScanResult(null), 5000);
+        return;
+      }
+      if (card.scanned) {
+        lastScannedKeyRef.current = decodedText;
+        lastScannedTimeRef.current = Date.now();
+        playAlreadyScanned();
+        setScanResult({ type: 'warning', message: `Already scanned: ${card.guest_name}`, icon: <AlertTriangle size={24} /> });
+        startCooldown();
+        setTimeout(() => setScanResult(null), 5000);
+        return;
+      }
+      const { addToQueue } = await import('../lib/offlineDb');
+      await addToQueue({ unique_key: decodedText });
+      await markCardScannedLocally(decodedText);
+      const q = await (await import('../lib/offlineDb')).getQueue();
+      setQueuedScans(q);
+      lastScannedKeyRef.current = decodedText;
+      lastScannedTimeRef.current = Date.now();
+      playSuccess();
+      setScanResult({ type: 'success', message: `${card.guest_name} checked in (offline)`, icon: <CheckCircle2 size={24} /> });
+      startCooldown();
+      await refreshLocalData();
+      setTimeout(() => setScanResult(null), 5000);
       return;
     }
 
@@ -202,25 +268,41 @@ export default function Scanner() {
       setVerifying(false);
 
       if (res.ok) {
+        lastScannedKeyRef.current = decodedText;
+        lastScannedTimeRef.current = Date.now();
         playSuccess();
         setScanResult({ type: 'success', message: `${data.guest_name} checked in!`, icon: <CheckCircle2 size={24} /> });
+        startCooldown();
+        await markCardScannedLocally(decodedText, data.scanned_at);
       } else if (data.status === 'already_scanned') {
+        lastScannedKeyRef.current = decodedText;
+        lastScannedTimeRef.current = Date.now();
         playAlreadyScanned();
         setScanResult({ type: 'warning', message: `Already scanned: ${data.guest_name}`, icon: <AlertTriangle size={24} /> });
+        startCooldown();
       } else {
+        lastScannedKeyRef.current = decodedText;
+        lastScannedTimeRef.current = Date.now();
         playInvalid();
         setScanResult({ type: 'error', message: data.error, icon: <XCircle size={24} /> });
+        startCooldown();
       }
       setTimeout(() => setScanResult(null), 5000);
     } catch (error) {
       await new Promise(r => setTimeout(r, 1000));
       setVerifying(false);
-      const queue = addToQueue({ unique_key: decodedText });
-      setQueuedScans(queue);
-      setScanResult({ type: 'warning', message: `Connection failed. Queued (${queue.length} pending)`, icon: <CloudOff size={24} /> });
+      lastScannedKeyRef.current = decodedText;
+      lastScannedTimeRef.current = Date.now();
+      const { addToQueue } = await import('../lib/offlineDb');
+      await addToQueue({ unique_key: decodedText });
+      const q = await (await import('../lib/offlineDb')).getQueue();
+      setQueuedScans(q);
+      playInvalid();
+      setScanResult({ type: 'warning', message: `Connection lost. Queued for retry.`, icon: <CloudOff size={24} /> });
+      startCooldown();
       setTimeout(() => setScanResult(null), 3000);
     }
-  }, [isOnline, token]);
+  }, [isOnline, token, refreshLocalData, startCooldown]);
 
   const startScanner = async () => {
     setStarting(true);
@@ -292,16 +374,23 @@ export default function Scanner() {
 
       <div className="scanner-container" style={{ padding: '2rem' }}>
         <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem',
           padding: '0.75rem 1.25rem', borderRadius: 'var(--radius)',
           background: isOnline ? 'var(--success-bg)' : 'var(--danger-bg)',
           border: `1px solid ${isOnline ? 'rgba(52,211,153,0.2)' : 'rgba(248,113,113,0.2)'}`,
           color: isOnline ? 'var(--success)' : 'var(--danger)',
           marginBottom: '1.5rem', fontWeight: 600, fontSize: '0.9rem'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            {isOnline ? <Wifi size={18} /> : <WifiOff size={18} />}
-            {isOnline ? 'Connected' : 'Offline Mode'}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {isOnline ? <Wifi size={18} /> : <WifiOff size={18} />}
+              {isOnline ? 'Connected' : 'Offline Mode'}
+            </div>
+            {cachedCards > 0 && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', opacity: 0.8 }}>
+                <Database size={12} /> {cachedCards} cards cached
+              </span>
+            )}
           </div>
           {queuedScans.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -309,7 +398,7 @@ export default function Scanner() {
                 {queuedScans.length} queued
               </span>
               {isOnline && (
-                <button onClick={syncQueuedScans} disabled={syncing} style={{
+                <button onClick={doSyncQueuedScans} disabled={syncing} style={{
                   background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 6,
                   padding: '0.3rem 0.6rem', color: 'inherit', cursor: 'pointer',
                   display: 'flex', alignItems: 'center', gap: '0.35rem',
@@ -430,7 +519,7 @@ export default function Scanner() {
                   </div>
 
                   <p style={{ color: 'var(--text-dim)', fontSize: '0.75rem', maxWidth: 280 }}>
-                    Camera requires HTTPS on iOS. Use manual entry as a fallback.
+                    Camera requires HTTPS on iOS. Works fully offline once cards are cached.
                   </p>
                 </div>
               )}
@@ -452,6 +541,22 @@ export default function Scanner() {
                 {scanResult.icon}
                 <h3 style={{ fontSize: '1.25rem', margin: 0 }}>{scanResult.message}</h3>
               </div>
+              {cooldownActive && (
+                <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', opacity: 0.8 }}>
+                  <Pause size={14} />
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Resuming in {cooldownRemaining}s</span>
+                  <div style={{
+                    width: 60, height: 4, borderRadius: 2,
+                    background: 'rgba(255,255,255,0.2)', overflow: 'hidden',
+                  }}>
+                    <div style={{
+                      height: '100%', borderRadius: 2, background: 'currentColor',
+                      width: `${(cooldownRemaining / Math.ceil(SCAN_COOLDOWN_MS / 1000)) * 100}%`,
+                      transition: 'width 0.2s linear',
+                    }} />
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
