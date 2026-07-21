@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotify } from '../contexts/NotificationContext';
 import TicketCard from '../components/TicketCard';
+import QRCode from 'qrcode';
 import {
   CreditCard,
   Plus,
@@ -94,95 +95,104 @@ export default function Cards() {
     locationLine2: settings.event_location_line2 || '',
   }), [settings]);
 
-  const printCard = (card) => {
+  const buildTicketHtml = (p, qrDataUrl) => `
+    <div style="max-width:420px;margin:0 auto;background:#fff;border-radius:24px;
+      box-shadow:0 8px 32px rgba(0,0,0,0.08);overflow:visible;position:relative;
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
+      <div style="width:64px;height:64px;border-radius:50%;background:#111827;
+        display:flex;align-items:center;justify-content:center;
+        margin:-32px auto 0;position:relative;z-index:6;
+        box-shadow:0 2px 8px rgba(0,0,0,0.15)">
+        <span style="color:#fff;font-size:14px;font-weight:700;letter-spacing:1px">${esc(p.orgLogoText)}</span>
+      </div>
+      <div style="padding:44px 24px 0;text-align:center">
+        <div style="font-size:22px;font-weight:700;color:#111;line-height:1.3">${esc(p.eventTitle)}</div>
+        ${p.eventSubtitle ? `<div style="font-size:15px;font-weight:500;color:#2563EB;margin-top:6px">${esc(p.eventSubtitle)}</div>` : ''}
+      </div>
+      <div style="padding:24px 24px 0;display:flex;justify-content:center">
+        <div style="background:#F3F4F6;border-radius:16px;padding:16px;position:relative;
+          display:inline-flex;align-items:center;justify-content:center">
+          <img src="${qrDataUrl}" width="230" height="230" style="display:block;border-radius:8px" />
+          ${p.qrCenterInitial ? `<div style="position:absolute;width:48px;height:48px;border-radius:50%;background:#111827;
+            display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.15)">
+            <span style="color:#fff;font-size:18px;font-weight:700">${esc(p.qrCenterInitial)}</span>
+          </div>` : ''}
+        </div>
+      </div>
+      <div style="padding:24px 24px 0">
+        <div style="background:#F3F4F6;border-radius:12px;padding:12px 16px">
+          <div style="font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:2px">Guest Name</div>
+          <div style="font-size:18px;font-weight:700;color:#111">${esc(p.guestName)}</div>
+        </div>
+      </div>
+      <div style="position:relative;margin:24px 0 0;height:40px">
+        <div style="position:absolute;left:-14px;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:50%;background:#F2F3F5;z-index:2"></div>
+        <div style="position:absolute;right:-14px;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:50%;background:#F2F3F5;z-index:2"></div>
+        <div style="position:absolute;top:50%;left:24px;right:24px;border-top:2px dashed #D1D5DB;transform:translateY(-50%)"></div>
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:0 6px;z-index:3;
+          display:flex;align-items:center;justify-content:center;font-size:16px;color:#6B7280">✂</div>
+      </div>
+      <div style="padding:0 24px 24px;display:flex;justify-content:space-between">
+        <div style="text-align:left">
+          <div style="font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:4px">Date &amp; Time</div>
+          ${p.date ? `<div style="font-size:15px;font-weight:700;color:#111;line-height:1.4">${esc(p.date)}</div>` : ''}
+          ${p.time ? `<div style="font-size:15px;font-weight:700;color:#111;line-height:1.4">${esc(p.time)}</div>` : ''}
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:4px">Location</div>
+          ${p.locationLine1 ? `<div style="font-size:15px;font-weight:700;color:#111;line-height:1.4">${esc(p.locationLine1)}</div>` : ''}
+          ${p.locationLine2 ? `<div style="font-size:15px;font-weight:700;color:#111;line-height:1.4">${esc(p.locationLine2)}</div>` : ''}
+        </div>
+      </div>
+    </div>`;
+
+  const printCard = async (card) => {
     const props = getTicketProps(card);
+    const qrDataUrl = await QRCode.toDataURL(card.unique_key, {
+      width: 460, margin: 0,
+      color: { dark: '#000000', light: '#ffffff' },
+      errorCorrectionLevel: 'H',
+    });
+    const html = buildTicketHtml(props, qrDataUrl);
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`<!DOCTYPE html><html><head>
       <title>Ticket - ${card.guest_name}</title>
       <style>
-        @page{size:portrait;margin:0}
+        @page{size:portrait;margin:10mm}
         *{margin:0;padding:0;box-sizing:border-box}
         body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
           display:flex;align-items:center;justify-content:center;min-height:100vh;background:#F2F3F5}
-      </style>
-      <script src="https://unpkg.com/react@18/umd/react.production.min.js"><\/script>
-      <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"><\/script>
-      <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
-    </head><body>
-      <div id="root"></div>
-      <script type="text/babel">
-        const { useState, useEffect } = React;
-        function QrImg({ value, size }) {
-          const [url, setUrl] = useState('');
-          useEffect(() => {
-            const s = document.createElement('script');
-            s.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js';
-            s.onload = () => {
-              window.QRCode.toDataURL(value, { width: size, margin: 0,
-                color: { dark: '#000000', light: '#ffffff' },
-                errorCorrectionLevel: 'H' }).then(setUrl);
-            };
-            document.head.appendChild(s);
-          }, [value, size]);
-          return url ? React.createElement('img', { src: url, width: size, height: size,
-            style: { display: 'block', borderRadius: 8 } }) :
-            React.createElement('div', { style: { width: size, height: size,
-              background: '#e5e7eb', borderRadius: 8 } });
-        }
-        function Ticket() {
-          const [ready, setReady] = useState(false);
-          useEffect(() => { setTimeout(() => setReady(true), 500); }, []);
-          if (!ready) return null;
-          ReactDOM.createRoot(document.getElementById('root')).render(
-            React.createElement(window.TicketCard.default, ${JSON.stringify({ ...props, embedded: false })})
-          );
-          setTimeout(() => window.print(), 300);
-          return null;
-        }
-        ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(Ticket));
-      <\/script>
-    </body></html>`);
+      </style></head><body>${html}</body></html>`);
     printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => printWindow.print(), 200);
   };
 
-  const printAllCards = () => {
-    const allProps = cards.map(card => getTicketProps(card));
+  const printAllCards = async () => {
+    const qrUrls = await Promise.all(
+      cards.map(card => QRCode.toDataURL(card.unique_key, {
+        width: 360, margin: 0,
+        color: { dark: '#000000', light: '#ffffff' },
+        errorCorrectionLevel: 'H',
+      }))
+    );
+    const ticketsHtml = cards.map((card, i) => {
+      const props = getTicketProps(card);
+      return `<div style="page-break-inside:avoid;break-inside:avoid;display:flex;justify-content:center;padding:8mm 0">
+        ${buildTicketHtml(props, qrUrls[i])}
+      </div>`;
+    }).join('');
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`<!DOCTYPE html><html><head>
       <title>All Tickets</title>
       <style>
-        @page{size:A4 portrait;margin:10mm}
+        @page{size:A4 portrait;margin:8mm}
         *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-          background:#F2F3F5}
-        .ticket-wrap{width:100%;page-break-inside:avoid;break-inside:avoid;
-          display:flex;justify-content:center;padding:10mm 0}
-      </style>
-      <script src="https://unpkg.com/react@18/umd/react.production.min.js"><\/script>
-      <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"><\/script>
-      <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
-    </head><body>
-      <div id="root"></div>
-      <script type="text/babel">
-        const allProps = ${JSON.stringify(allProps.map(p => ({ ...p, embedded: true })))};
-        function App() {
-          const [ready, setReady] = React.useState(false);
-          React.useEffect(() => { setTimeout(() => setReady(true), 800); }, []);
-          if (!ready) return null;
-          const el = React.createElement;
-          const root = ReactDOM.createRoot(document.getElementById('root'));
-          root.render(el('div', null,
-            allProps.map((p, i) => el('div', { key: i, className: 'ticket-wrap' },
-              el(window.TicketCard.default, p)
-            ))
-          ));
-          setTimeout(() => window.print(), 400);
-          return null;
-        }
-        ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
-      <\/script>
-    </body></html>`);
+        body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#F2F3F5}
+      </style></head><body>${ticketsHtml}</body></html>`);
     printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => printWindow.print(), 300);
   };
 
   const downloadCard = async (card) => {
@@ -461,6 +471,10 @@ export default function Cards() {
       )}
     </div>
   );
+}
+
+function esc(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function roundRect(ctx, x, y, w, h, r) {
