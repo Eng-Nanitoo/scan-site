@@ -161,44 +161,49 @@ export default function Cards() {
   const buildTicketPrintHtml = (p, qrDataUrl) => `
     <div style="background:#fff;border-radius:5px;overflow:hidden;position:relative;
       font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-      border:1px solid #e5e7eb;width:100%;height:100%;display:flex;flex-direction:column">
-      <div style="width:20px;height:20px;border-radius:50%;background:#111827;
-        display:flex;align-items:center;justify-content:center;
-        margin:-10px auto 0;position:relative;z-index:2;
-        box-shadow:0 1px 2px rgba(0,0,0,0.15);flex-shrink:0">
-        <span style="color:#fff;font-size:5px;font-weight:700;letter-spacing:0.3px">${esc(p.orgLogoText)}</span>
+      border:1px solid #e5e7eb;width:100%;height:100%;
+      display:flex;flex-direction:column;justify-content:space-between;padding:4%">
+      <div style="text-align:center">
+        <div style="width:5.5vw;max-width:20px;height:5.5vw;max-height:20px;border-radius:50%;background:#111827;
+          display:inline-flex;align-items:center;justify-content:center;
+          box-shadow:0 1px 2px rgba(0,0,0,0.15)">
+          <span style="color:#fff;font-size:5px;font-weight:700;letter-spacing:0.3px">${esc(p.orgLogoText)}</span>
+        </div>
+        <div style="margin-top:2px">
+          <div style="font-size:clamp(6px,1.8vw,9px);font-weight:700;color:#111;line-height:1.15">${esc(p.eventTitle)}</div>
+          ${p.eventSubtitle ? `<div style="font-size:clamp(5px,1.4vw,7px);font-weight:500;color:#2563EB;margin-top:1px">${esc(p.eventSubtitle)}</div>` : ''}
+        </div>
       </div>
-      <div style="padding:6px 4px 0;text-align:center;flex-shrink:0">
-        <div style="font-size:8px;font-weight:700;color:#111;line-height:1.15">${esc(p.eventTitle)}</div>
-        ${p.eventSubtitle ? `<div style="font-size:6px;font-weight:500;color:#2563EB;margin-top:1px">${esc(p.eventSubtitle)}</div>` : ''}
-      </div>
-      <div style="padding:3px 4px 0;display:flex;justify-content:center;flex-shrink:0">
-        <div style="background:#F3F4F6;border-radius:5px;padding:3px;position:relative;
-          display:inline-flex;align-items:center;justify-content:center">
-          <img src="${qrDataUrl}" width="60" height="60" style="display:block;border-radius:2px" />
-          ${p.qrCenterInitial ? `<div style="position:absolute;width:14px;height:14px;border-radius:50%;background:#111827;
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:2% 4%">
+        <div style="background:#F3F4F6;border-radius:5px;padding:3%;position:relative;
+          display:inline-flex;align-items:center;justify-content:center;
+          width:75%;aspect-ratio:1/1;max-height:100%">
+          <img src="${qrDataUrl}" style="display:block;width:100%;height:100%;border-radius:2px;object-fit:contain" />
+          ${p.qrCenterInitial ? `<div style="position:absolute;width:18%;height:18%;border-radius:50%;background:#111827;
             display:flex;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(0,0,0,0.15)">
-            <span style="color:#fff;font-size:5px;font-weight:700">${esc(p.qrCenterInitial)}</span>
+            <span style="color:#fff;font-size:clamp(4px,1.2vw,6px);font-weight:700">${esc(p.qrCenterInitial)}</span>
           </div>` : ''}
         </div>
       </div>
-      <div style="position:relative;margin:3px 4px 0;height:10px;flex-shrink:0">
-        <div style="position:absolute;left:-5px;top:50%;transform:translateY(-50%);width:10px;height:10px;border-radius:50%;background:#F2F3F5;z-index:2"></div>
-        <div style="position:absolute;right:-5px;top:50%;transform:translateY(-50%);width:10px;height:10px;border-radius:50%;background:#F2F3F5;z-index:2"></div>
-        <div style="position:absolute;top:50%;left:4px;right:4px;border-top:1px dashed #D1D5DB;transform:translateY(-50%)"></div>
-        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:0 1px;z-index:3;
-          display:flex;align-items:center;justify-content:center;font-size:5px;color:#6B7280">✂</div>
-      </div>
-      <div style="padding:0 4px 3px;display:flex;justify-content:space-between;flex-shrink:0">
-        <div style="text-align:left">
-          <div style="font-size:5px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:0.5px">Date &amp; Time</div>
-          ${p.date ? `<div style="font-size:6px;font-weight:700;color:#111;line-height:1.15">${esc(p.date)}</div>` : ''}
-          ${p.time ? `<div style="font-size:6px;font-weight:700;color:#111;line-height:1.15">${esc(p.time)}</div>` : ''}
+      <div>
+        <div style="position:relative;margin:0 4px;height:10px">
+          <div style="position:absolute;left:-5px;top:50%;transform:translateY(-50%);width:10px;height:10px;border-radius:50%;background:#F2F3F5;z-index:2"></div>
+          <div style="position:absolute;right:-5px;top:50%;transform:translateY(-50%);width:10px;height:10px;border-radius:50%;background:#F2F3F5;z-index:2"></div>
+          <div style="position:absolute;top:50%;left:4px;right:4px;border-top:1px dashed #D1D5DB;transform:translateY(-50%)"></div>
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:0 1px;z-index:3;
+            display:flex;align-items:center;justify-content:center;font-size:5px;color:#6B7280">✂</div>
         </div>
-        <div style="text-align:right">
-          <div style="font-size:5px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:0.5px">Location</div>
-          ${p.locationLine1 ? `<div style="font-size:6px;font-weight:700;color:#111;line-height:1.15">${esc(p.locationLine1)}</div>` : ''}
-          ${p.locationLine2 ? `<div style="font-size:6px;font-weight:700;color:#111;line-height:1.15">${esc(p.locationLine2)}</div>` : ''}
+        <div style="display:flex;justify-content:space-between;padding:0 4px">
+          <div style="text-align:left">
+            <div style="font-size:clamp(4px,1.1vw,5.5px);font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:0.5px">Date &amp; Time</div>
+            ${p.date ? `<div style="font-size:clamp(5px,1.4vw,7px);font-weight:700;color:#111;line-height:1.15">${esc(p.date)}</div>` : ''}
+            ${p.time ? `<div style="font-size:clamp(5px,1.4vw,7px);font-weight:700;color:#111;line-height:1.15">${esc(p.time)}</div>` : ''}
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:clamp(4px,1.1vw,5.5px);font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:0.5px">Location</div>
+            ${p.locationLine1 ? `<div style="font-size:clamp(5px,1.4vw,7px);font-weight:700;color:#111;line-height:1.15">${esc(p.locationLine1)}</div>` : ''}
+            ${p.locationLine2 ? `<div style="font-size:clamp(5px,1.4vw,7px);font-weight:700;color:#111;line-height:1.15">${esc(p.locationLine2)}</div>` : ''}
+          </div>
         </div>
       </div>
     </div>`;
