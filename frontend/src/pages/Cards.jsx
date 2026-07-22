@@ -168,7 +168,7 @@ export default function Cards() {
         box-shadow:0 1px 3px rgba(0,0,0,0.15);flex-shrink:0">
         <span style="color:#fff;font-size:6px;font-weight:700;letter-spacing:0.3px">${esc(p.orgLogoText)}</span>
       </div>
-      <div style="padding:12px 8px 0;text-align:center;flex-shrink:0">
+      <div style="padding:10px 8px 0;text-align:center;flex-shrink:0">
         <div style="font-size:8px;font-weight:700;color:#111;line-height:1.2">${esc(p.eventTitle)}</div>
         ${p.eventSubtitle ? `<div style="font-size:7px;font-weight:500;color:#2563EB;margin-top:1px">${esc(p.eventSubtitle)}</div>` : ''}
       </div>
@@ -189,7 +189,7 @@ export default function Cards() {
         <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:0 2px;z-index:3;
           display:flex;align-items:center;justify-content:center;font-size:7px;color:#6B7280">✂</div>
       </div>
-      <div style="padding:0 8px 6px;display:flex;justify-content:space-between;margin-top:auto;flex-shrink:0">
+      <div style="padding:0 8px 4px;display:flex;justify-content:space-between;flex-shrink:0">
         <div style="text-align:left">
           <div style="font-size:5px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:1px">Date &amp; Time</div>
           ${p.date ? `<div style="font-size:7px;font-weight:700;color:#111;line-height:1.2">${esc(p.date)}</div>` : ''}
