@@ -159,46 +159,46 @@ export default function Cards() {
   };
 
   const buildTicketPrintHtml = (p, qrDataUrl) => `
-    <div style="background:#fff;border-radius:8px;overflow:hidden;position:relative;
+    <div style="background:#fff;border-radius:6px;overflow:hidden;position:relative;
       font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
       border:1px solid #e5e7eb;width:100%;height:100%;display:flex;flex-direction:column">
-      <div style="width:22px;height:22px;border-radius:50%;background:#111827;
+      <div style="width:18px;height:18px;border-radius:50%;background:#111827;
         display:flex;align-items:center;justify-content:center;
-        margin:-11px auto 0;position:relative;z-index:2;
-        box-shadow:0 1px 3px rgba(0,0,0,0.15);flex-shrink:0">
-        <span style="color:#fff;font-size:6px;font-weight:700;letter-spacing:0.3px">${esc(p.orgLogoText)}</span>
+        margin:-9px auto 0;position:relative;z-index:2;
+        box-shadow:0 1px 2px rgba(0,0,0,0.15);flex-shrink:0">
+        <span style="color:#fff;font-size:5px;font-weight:700;letter-spacing:0.2px">${esc(p.orgLogoText)}</span>
       </div>
-      <div style="padding:10px 8px 0;text-align:center;flex-shrink:0">
-        <div style="font-size:8px;font-weight:700;color:#111;line-height:1.2">${esc(p.eventTitle)}</div>
-        ${p.eventSubtitle ? `<div style="font-size:7px;font-weight:500;color:#2563EB;margin-top:1px">${esc(p.eventSubtitle)}</div>` : ''}
+      <div style="padding:8px 5px 0;text-align:center;flex-shrink:0">
+        <div style="font-size:7px;font-weight:700;color:#111;line-height:1.2">${esc(p.eventTitle)}</div>
+        ${p.eventSubtitle ? `<div style="font-size:6px;font-weight:500;color:#2563EB;margin-top:1px">${esc(p.eventSubtitle)}</div>` : ''}
       </div>
-      <div style="padding:5px 8px 0;display:flex;justify-content:center;flex-shrink:0">
-        <div style="background:#F3F4F6;border-radius:6px;padding:4px;position:relative;
+      <div style="padding:4px 5px 0;display:flex;justify-content:center;flex-shrink:0">
+        <div style="background:#F3F4F6;border-radius:5px;padding:3px;position:relative;
           display:inline-flex;align-items:center;justify-content:center">
-          <img src="${qrDataUrl}" width="68" height="68" style="display:block;border-radius:3px" />
-          ${p.qrCenterInitial ? `<div style="position:absolute;width:16px;height:16px;border-radius:50%;background:#111827;
+          <img src="${qrDataUrl}" width="50" height="50" style="display:block;border-radius:2px" />
+          ${p.qrCenterInitial ? `<div style="position:absolute;width:12px;height:12px;border-radius:50%;background:#111827;
             display:flex;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(0,0,0,0.15)">
-            <span style="color:#fff;font-size:7px;font-weight:700">${esc(p.qrCenterInitial)}</span>
+            <span style="color:#fff;font-size:5px;font-weight:700">${esc(p.qrCenterInitial)}</span>
           </div>` : ''}
         </div>
       </div>
-      <div style="position:relative;margin:4px 8px 0;height:12px;flex-shrink:0">
-        <div style="position:absolute;left:-6px;top:50%;transform:translateY(-50%);width:12px;height:12px;border-radius:50%;background:#F2F3F5;z-index:2"></div>
-        <div style="position:absolute;right:-6px;top:50%;transform:translateY(-50%);width:12px;height:12px;border-radius:50%;background:#F2F3F5;z-index:2"></div>
-        <div style="position:absolute;top:50%;left:8px;right:8px;border-top:1px dashed #D1D5DB;transform:translateY(-50%)"></div>
-        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:0 2px;z-index:3;
-          display:flex;align-items:center;justify-content:center;font-size:7px;color:#6B7280">✂</div>
+      <div style="position:relative;margin:3px 5px 0;height:10px;flex-shrink:0">
+        <div style="position:absolute;left:-5px;top:50%;transform:translateY(-50%);width:10px;height:10px;border-radius:50%;background:#F2F3F5;z-index:2"></div>
+        <div style="position:absolute;right:-5px;top:50%;transform:translateY(-50%);width:10px;height:10px;border-radius:50%;background:#F2F3F5;z-index:2"></div>
+        <div style="position:absolute;top:50%;left:5px;right:5px;border-top:1px dashed #D1D5DB;transform:translateY(-50%)"></div>
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:0 1px;z-index:3;
+          display:flex;align-items:center;justify-content:center;font-size:6px;color:#6B7280">✂</div>
       </div>
-      <div style="padding:0 8px 4px;display:flex;justify-content:space-between;flex-shrink:0">
+      <div style="padding:0 5px 4px;display:flex;justify-content:space-between;flex-shrink:0">
         <div style="text-align:left">
-          <div style="font-size:5px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:1px">Date &amp; Time</div>
-          ${p.date ? `<div style="font-size:7px;font-weight:700;color:#111;line-height:1.2">${esc(p.date)}</div>` : ''}
-          ${p.time ? `<div style="font-size:7px;font-weight:700;color:#111;line-height:1.2">${esc(p.time)}</div>` : ''}
+          <div style="font-size:4.5px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:0.5px">Date &amp; Time</div>
+          ${p.date ? `<div style="font-size:6px;font-weight:700;color:#111;line-height:1.2">${esc(p.date)}</div>` : ''}
+          ${p.time ? `<div style="font-size:6px;font-weight:700;color:#111;line-height:1.2">${esc(p.time)}</div>` : ''}
         </div>
         <div style="text-align:right">
-          <div style="font-size:5px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:1px">Location</div>
-          ${p.locationLine1 ? `<div style="font-size:7px;font-weight:700;color:#111;line-height:1.2">${esc(p.locationLine1)}</div>` : ''}
-          ${p.locationLine2 ? `<div style="font-size:7px;font-weight:700;color:#111;line-height:1.2">${esc(p.locationLine2)}</div>` : ''}
+          <div style="font-size:4.5px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:0.5px">Location</div>
+          ${p.locationLine1 ? `<div style="font-size:6px;font-weight:700;color:#111;line-height:1.2">${esc(p.locationLine1)}</div>` : ''}
+          ${p.locationLine2 ? `<div style="font-size:6px;font-weight:700;color:#111;line-height:1.2">${esc(p.locationLine2)}</div>` : ''}
         </div>
       </div>
     </div>`;
@@ -213,19 +213,19 @@ export default function Cards() {
     );
 
     const pages = [];
-    for (let i = 0; i < cards.length; i += 6) {
-      pages.push(cards.slice(i, i + 6));
+    for (let i = 0; i < cards.length; i += 9) {
+      pages.push(cards.slice(i, i + 9));
     }
 
     const pagesHtml = pages.map((page, pi) => {
       const ticketsHtml = page.map((card, ci) => {
         const props = getTicketProps(card);
-        return `<div style="width:98mm;height:93mm">${buildTicketPrintHtml(props, qrUrls[pi * 6 + ci])}</div>`;
+        return `<div style="width:65mm;height:93mm">${buildTicketPrintHtml(props, qrUrls[pi * 9 + ci])}</div>`;
       }).join('');
 
-      const emptySlots = 6 - page.length;
+      const emptySlots = 9 - page.length;
       const emptyHtml = Array.from({ length: emptySlots }, () =>
-        '<div style="width:98mm;height:93mm"></div>'
+        '<div style="width:65mm;height:93mm"></div>'
       ).join('');
 
       return `<div class="print-page">
@@ -247,7 +247,7 @@ export default function Cards() {
         .print-page:last-child{page-break-after:auto}
         .print-grid{
           display:grid;
-          grid-template-columns:repeat(2,98mm);
+          grid-template-columns:repeat(3,65mm);
           grid-template-rows:repeat(3,93mm);
           gap:2mm;
           justify-content:center;
