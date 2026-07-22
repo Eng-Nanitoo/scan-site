@@ -79,7 +79,7 @@ export default function GenerateCards() {
           ) : (
             <div className="form-group">
               <label>Number of Cards</label>
-              <input type="number" min="1" max="500" value={count}
+              <input type="number" min="1" max="2000" value={count}
                 onChange={(e) => setCount(parseInt(e.target.value) || 1)} />
             </div>
           )}
