@@ -162,23 +162,23 @@ export default function Cards() {
     <div style="background:#fff;border-radius:4px;overflow:hidden;position:relative;
       font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
       border:1px solid #e5e7eb;width:100%;height:100%;display:flex;flex-direction:column">
-      <div style="width:14px;height:14px;border-radius:50%;background:#111827;
+      <div style="width:18px;height:18px;border-radius:50%;background:#111827;
         display:flex;align-items:center;justify-content:center;
-        margin:-7px auto 0;position:relative;z-index:2;
+        margin:-9px auto 0;position:relative;z-index:2;
         box-shadow:0 1px 2px rgba(0,0,0,0.15);flex-shrink:0">
-        <span style="color:#fff;font-size:4px;font-weight:700;letter-spacing:0.2px">${esc(p.orgLogoText)}</span>
+        <span style="color:#fff;font-size:5px;font-weight:700;letter-spacing:0.2px">${esc(p.orgLogoText)}</span>
       </div>
-      <div style="padding:4px 3px 0;text-align:center;flex-shrink:0">
+      <div style="padding:3px 3px 0;text-align:center;flex-shrink:0">
         <div style="font-size:6px;font-weight:700;color:#111;line-height:1.1">${esc(p.eventTitle)}</div>
         ${p.eventSubtitle ? `<div style="font-size:5px;font-weight:500;color:#2563EB;margin-top:0.5px">${esc(p.eventSubtitle)}</div>` : ''}
       </div>
       <div style="padding:2px 3px 0;display:flex;justify-content:center;flex-shrink:0">
         <div style="background:#F3F4F6;border-radius:4px;padding:2px;position:relative;
           display:inline-flex;align-items:center;justify-content:center">
-          <img src="${qrDataUrl}" width="44" height="44" style="display:block;border-radius:2px" />
-          ${p.qrCenterInitial ? `<div style="position:absolute;width:10px;height:10px;border-radius:50%;background:#111827;
+          <img src="${qrDataUrl}" width="52" height="52" style="display:block;border-radius:2px" />
+          ${p.qrCenterInitial ? `<div style="position:absolute;width:12px;height:12px;border-radius:50%;background:#111827;
             display:flex;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(0,0,0,0.15)">
-            <span style="color:#fff;font-size:4px;font-weight:700">${esc(p.qrCenterInitial)}</span>
+            <span style="color:#fff;font-size:5px;font-weight:700">${esc(p.qrCenterInitial)}</span>
           </div>` : ''}
         </div>
       </div>
@@ -192,13 +192,13 @@ export default function Cards() {
       <div style="padding:0 3px 2px;display:flex;justify-content:space-between;flex-shrink:0">
         <div style="text-align:left">
           <div style="font-size:4px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:0.2px;margin-bottom:0">Date &amp; Time</div>
-          ${p.date ? `<div style="font-size:5px;font-weight:700;color:#111;line-height:1.1">${esc(p.date)}</div>` : ''}
-          ${p.time ? `<div style="font-size:5px;font-weight:700;color:#111;line-height:1.1">${esc(p.time)}</div>` : ''}
+          ${p.date ? `<div style="font-size:5.5px;font-weight:700;color:#111;line-height:1.1">${esc(p.date)}</div>` : ''}
+          ${p.time ? `<div style="font-size:5.5px;font-weight:700;color:#111;line-height:1.1">${esc(p.time)}</div>` : ''}
         </div>
         <div style="text-align:right">
           <div style="font-size:4px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:0.2px;margin-bottom:0">Location</div>
-          ${p.locationLine1 ? `<div style="font-size:5px;font-weight:700;color:#111;line-height:1.1">${esc(p.locationLine1)}</div>` : ''}
-          ${p.locationLine2 ? `<div style="font-size:5px;font-weight:700;color:#111;line-height:1.1">${esc(p.locationLine2)}</div>` : ''}
+          ${p.locationLine1 ? `<div style="font-size:5.5px;font-weight:700;color:#111;line-height:1.1">${esc(p.locationLine1)}</div>` : ''}
+          ${p.locationLine2 ? `<div style="font-size:5.5px;font-weight:700;color:#111;line-height:1.1">${esc(p.locationLine2)}</div>` : ''}
         </div>
       </div>
     </div>`;
