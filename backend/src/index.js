@@ -25,26 +25,33 @@ const PORT = process.env.PORT || 4000;
 
 const connectedScanners = new Map();
 
-function emitScannersStatus() {
-  const scanners = [];
-  connectedScanners.forEach((data, socketId) => {
-    scanners.push({ socketId, ...data });
-  });
-  io.emit('scanners_status', scanners);
+function getRoom(subadminId) {
+  return `subadmin:${subadminId}`;
 }
 
-async function logActivity(userId, username, action, guestName, details) {
+function emitScannersStatus(subadminId) {
+  const scanners = [];
+  connectedScanners.forEach((data, socketId) => {
+    if (data.subadminId === subadminId) {
+      scanners.push({ socketId, ...data });
+    }
+  });
+  io.to(getRoom(subadminId)).emit('scanners_status', scanners);
+}
+
+async function logActivity(subadminId, userId, username, action, guestName, details) {
   try {
     await pool.query(
-      'INSERT INTO activity_log (user_id, username, action, guest_name, details) VALUES ($1, $2, $3, $4, $5)',
-      [userId, username, action, guestName, details]
+      'INSERT INTO activity_log (user_id, username, action, guest_name, details, subadmin_id) VALUES ($1, $2, $3, $4, $5, $6)',
+      [userId, username, action, guestName, details, subadminId]
     );
   } catch (error) {
     console.error('Log activity error:', error);
   }
 }
 
-async function emitActivity(userId, username, action, guestName, details) {
+async function emitToSubadmin(subadminId, userId, username, action, guestName, details) {
+  if (!subadminId) return;
   const activityData = {
     id: Date.now(),
     username,
@@ -53,8 +60,8 @@ async function emitActivity(userId, username, action, guestName, details) {
     details,
     created_at: new Date().toISOString()
   };
-  io.emit('activity', activityData);
-  await logActivity(userId, username, action, guestName, details);
+  io.to(getRoom(subadminId)).emit('activity', activityData);
+  await logActivity(subadminId, userId, username, action, guestName, details);
 }
 
 app.use(cors());
@@ -79,16 +86,30 @@ app.get('/api/scan/scanners-status', (req, res) => {
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
 
+  socket.on('join_subadmin', (data) => {
+    if (data.subadminId) {
+      socket.join(getRoom(data.subadminId));
+      console.log(`Socket ${socket.id} joined room ${getRoom(data.subadminId)}`);
+    }
+  });
+
   socket.on('scanner_online', async (data) => {
+    const subadminId = data.subadminId || null;
     connectedScanners.set(socket.id, {
       username: data.username,
       userId: data.userId,
-      subadminId: data.subadminId || null,
+      subadminId,
       connectedAt: new Date().toISOString()
     });
-    console.log(`Scanner online: ${data.username}`);
-    emitScannersStatus();
-    await emitActivity(
+    console.log(`Scanner online: ${data.username} (subadmin: ${subadminId})`);
+
+    if (subadminId) {
+      socket.join(getRoom(subadminId));
+    }
+
+    emitScannersStatus(subadminId);
+    await emitToSubadmin(
+      subadminId,
       data.userId,
       data.username,
       'scanner_online',
@@ -102,8 +123,9 @@ io.on('connection', (socket) => {
     if (scanner) {
       console.log(`Scanner offline: ${scanner.username}`);
       connectedScanners.delete(socket.id);
-      emitScannersStatus();
-      await emitActivity(
+      emitScannersStatus(scanner.subadminId);
+      await emitToSubadmin(
+        scanner.subadminId,
         scanner.userId,
         scanner.username,
         'scanner_offline',

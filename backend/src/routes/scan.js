@@ -4,6 +4,10 @@ const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 
+function getRoom(subadminId) {
+  return `subadmin:${subadminId}`;
+}
+
 async function logActivity(subadminId, userId, username, action, guestName, details) {
   try {
     await pool.query(
@@ -24,10 +28,10 @@ router.post('/', authMiddleware, async (req, res) => {
     }
 
     const cardResult = await pool.query('SELECT * FROM cards WHERE unique_key = $1', [unique_key]);
+    const io = req.app.get('io');
+    const subadminId = req.user.subadmin_id || null;
 
     if (cardResult.rows.length === 0) {
-      const io = req.app.get('io');
-      const subadminId = req.user.subadmin_id || null;
       const activityData = {
         id: Date.now(),
         username: req.user.username,
@@ -36,7 +40,7 @@ router.post('/', authMiddleware, async (req, res) => {
         details: 'Unknown QR code scanned',
         created_at: new Date().toISOString()
       };
-      if (io) io.emit('activity', activityData);
+      if (io && subadminId) io.to(getRoom(subadminId)).emit('activity', activityData);
       await logActivity(subadminId, req.user.id, req.user.username, 'scan_failed', null, 'Unknown QR code scanned');
 
       return res.status(404).json({ error: 'Card not found', status: 'not_found' });
@@ -45,8 +49,6 @@ router.post('/', authMiddleware, async (req, res) => {
     const card = cardResult.rows[0];
 
     if (card.scanned) {
-      const io = req.app.get('io');
-      const subadminId = req.user.subadmin_id || null;
       const activityData = {
         id: Date.now(),
         username: req.user.username,
@@ -55,7 +57,7 @@ router.post('/', authMiddleware, async (req, res) => {
         details: `Duplicate scan attempt for ${card.guest_name}`,
         created_at: new Date().toISOString()
       };
-      if (io) io.emit('activity', activityData);
+      if (io && subadminId) io.to(getRoom(subadminId)).emit('activity', activityData);
       await logActivity(subadminId, req.user.id, req.user.username, 'scan_duplicate', card.guest_name, `Duplicate scan attempt for ${card.guest_name}`);
 
       return res.status(400).json({
@@ -79,13 +81,11 @@ router.post('/', authMiddleware, async (req, res) => {
       scanned_by: req.user.username
     };
 
-    const io = req.app.get('io');
-    if (io) {
-      io.emit('guest_checked_in', scanData);
-      io.emit('stats_updated');
+    if (io && subadminId) {
+      io.to(getRoom(subadminId)).emit('guest_checked_in', scanData);
+      io.to(getRoom(subadminId)).emit('stats_updated');
     }
 
-    const subadminId = req.user.subadmin_id || null;
     const activityData = {
       id: Date.now(),
       username: req.user.username,
@@ -94,7 +94,7 @@ router.post('/', authMiddleware, async (req, res) => {
       details: `${card.guest_name} checked in`,
       created_at: new Date().toISOString()
     };
-    if (io) io.emit('activity', activityData);
+    if (io && subadminId) io.to(getRoom(subadminId)).emit('activity', activityData);
     await logActivity(subadminId, req.user.id, req.user.username, 'check_in', card.guest_name, `${card.guest_name} checked in`);
 
     res.json(scanData);

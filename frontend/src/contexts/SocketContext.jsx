@@ -17,9 +17,14 @@ export function SocketProvider({ children }) {
 
     newSocket.on('connect', () => {
       console.log('Socket connected');
+      const subadminId = user.subadmin_id || (user.role === 'subadmin' ? user.id : null);
+      if (subadminId) {
+        newSocket.emit('join_subadmin', { subadminId });
+      }
       newSocket.emit('scanner_online', {
         username: user.username,
-        userId: user.id
+        userId: user.id,
+        subadminId
       });
     });
 
