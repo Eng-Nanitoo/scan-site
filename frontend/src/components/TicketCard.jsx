@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import QRCode from 'qrcode';
 import { ChevronLeft, Share2, Scissors } from 'lucide-react';
+import { useI18n } from '../i18n/I18nContext';
 
 const COLORS = {
   navy: '#111827',
@@ -43,6 +44,7 @@ export default function TicketCard({
   embedded = false,
   onBack,
 }) {
+  const { t } = useI18n();
   const qrUrl = useQrDataUrl(qrValue, 230);
 
   const cardInner = (
@@ -157,7 +159,7 @@ export default function TicketCard({
               fontSize: 11, fontWeight: 600, color: COLORS.grayLabel,
               textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 4,
             }}>
-              Date & Time
+              {t('datetimeLabel')}
             </div>
             {date && <div style={{ fontSize: 15, fontWeight: 700, color: COLORS.blackText, lineHeight: 1.4 }}>{date}</div>}
             {time && <div style={{ fontSize: 15, fontWeight: 700, color: COLORS.blackText, lineHeight: 1.4 }}>{time}</div>}
@@ -167,7 +169,7 @@ export default function TicketCard({
               fontSize: 11, fontWeight: 600, color: COLORS.grayLabel,
               textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 4,
             }}>
-              Location
+              {t('locationLabel')}
             </div>
             {locationLine1 && <div style={{ fontSize: 15, fontWeight: 700, color: COLORS.blackText, lineHeight: 1.4 }}>{locationLine1}</div>}
             {locationLine2 && <div style={{ fontSize: 15, fontWeight: 700, color: COLORS.blackText, lineHeight: 1.4 }}>{locationLine2}</div>}
@@ -213,7 +215,7 @@ export default function TicketCard({
           position: 'absolute', left: 0, right: 0, textAlign: 'center',
           color: '#fff', fontSize: 17, fontWeight: 600, pointerEvents: 'none',
         }}>
-          Mon Billet
+          {t('monBillet')}
         </div>
         <div style={{ marginLeft: 'auto' }}>
           <button style={{

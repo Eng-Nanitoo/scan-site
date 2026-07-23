@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useI18n } from '../i18n/I18nContext';
 import {
   Upload,
   Image,
@@ -25,6 +26,7 @@ const LABEL_STYLE = {
 };
 
 export default function Settings() {
+  const { t } = useI18n();
   const [settings, setSettings] = useState({});
   const [form, setForm] = useState({
     event_name: '', event_subtitle: '', event_date: '', event_time: '',
@@ -99,8 +101,8 @@ export default function Settings() {
     return (
       <div>
         <div className="page-header">
-          <h1>Settings</h1>
-          <p>Configure your graduation party event</p>
+          <h1>{t('settings')}</h1>
+          <p>{t('settingsDesc')}</p>
         </div>
         <div className="settings-card">
           <div className="skeleton" style={{ width: 160, height: 100, borderRadius: 'var(--radius)', marginBottom: '1.5rem' }} />
@@ -115,29 +117,29 @@ export default function Settings() {
   return (
     <div>
       <div className="page-header">
-        <h1>Settings</h1>
-        <p>Configure your graduation party event</p>
+        <h1>{t('settings')}</h1>
+        <p>{t('settingsDesc')}</p>
       </div>
 
       <div className="settings-card">
         {/* Logo */}
         <div className="section-header">
           <div className="section-icon"><Image size={18} /></div>
-          <h3>Event Logo</h3>
+          <h3>{t('eventLogo')}</h3>
         </div>
         <div className="settings-logo-row" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1.5rem' }}>
           <div className="logo-preview">
-            {logoPreview ? <img src={logoPreview} alt="Logo" /> : <Image size={28} style={{ color: 'var(--text-dim)' }} />}
+            {logoPreview ? <img src={logoPreview} alt={t('logoAlt')} /> : <Image size={28} style={{ color: 'var(--text-dim)' }} />}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <label className="btn btn-secondary" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Upload size={16} /> Choose Logo
+              <Upload size={16} /> {t('chooseLogo')}
               <input type="file" accept="image/*" onChange={handleLogoChange}
                 style={{ position: 'absolute', width: 0, height: 0, opacity: 0, overflow: 'hidden' }} />
             </label>
             {logoFile && (
               <button className="btn btn-primary" onClick={uploadLogo} disabled={uploading}>
-                {uploading ? <><Loader2 size={16} className="spin" /> Uploading...</> : <><Upload size={16} /> Upload</>}
+                {uploading ? <><Loader2 size={16} className="spin" /> {t('uploading')}</> : <><Upload size={16} /> {t('upload')}</>}
               </button>
             )}
           </div>
@@ -146,58 +148,58 @@ export default function Settings() {
         {/* Event Details */}
         <div className="section-header" style={{ marginTop: '1.5rem' }}>
           <div className="section-icon"><Type size={18} /></div>
-          <h3>Event Details</h3>
+          <h3>{t('eventDetails')}</h3>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
           <div>
-            <label style={LABEL_STYLE}>Event Name</label>
+            <label style={LABEL_STYLE}>{t('eventName')}</label>
             <input style={INPUT_STYLE} value={form.event_name}
               onChange={(e) => handleChange('event_name', e.target.value)}
-              placeholder="Cérémonie de Fin d'Études" />
+              placeholder={t('eventNamePlaceholder')} />
           </div>
           <div>
-            <label style={LABEL_STYLE}>Subtitle</label>
+            <label style={LABEL_STYLE}>{t('subtitle')}</label>
             <input style={INPUT_STYLE} value={form.event_subtitle}
               onChange={(e) => handleChange('event_subtitle', e.target.value)}
-              placeholder="Licence 2026 – ISCAE" />
+              placeholder={t('subtitlePlaceholder')} />
           </div>
           <div>
-            <label style={LABEL_STYLE}>Org Logo Text (badge initials)</label>
+            <label style={LABEL_STYLE}>{t('orgLogoText')}</label>
             <input style={{ ...INPUT_STYLE, maxWidth: 200 }} value={form.org_logo_text}
               onChange={(e) => handleChange('org_logo_text', e.target.value)}
-              placeholder="ISCAE" />
+              placeholder={t('orgLogoTextPlaceholder')} />
           </div>
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: 150 }}>
-              <label style={LABEL_STYLE}><Calendar size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Date</label>
+              <label style={LABEL_STYLE}><Calendar size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />{t('date')}</label>
               <input style={INPUT_STYLE} value={form.event_date}
                 onChange={(e) => handleChange('event_date', e.target.value)}
-                placeholder="15 Juin 2026" />
+                placeholder={t('datePlaceholder')} />
             </div>
             <div style={{ flex: 1, minWidth: 150 }}>
               <label style={LABEL_STYLE}><Clock size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Time</label>
               <input style={INPUT_STYLE} value={form.event_time}
                 onChange={(e) => handleChange('event_time', e.target.value)}
-                placeholder="14:00 GMT" />
+                placeholder={t('timePlaceholder')} />
             </div>
           </div>
           <div>
-            <label style={LABEL_STYLE}><MapPin size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Location Line 1</label>
+            <label style={LABEL_STYLE}><MapPin size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />{t('locationLine1')}</label>
             <input style={INPUT_STYLE} value={form.event_location_line1}
               onChange={(e) => handleChange('event_location_line1', e.target.value)}
-              placeholder="Palais des Congrès" />
+              placeholder={t('locationLine1Placeholder')} />
           </div>
           <div>
-            <label style={LABEL_STYLE}><Building size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Location Line 2</label>
+            <label style={LABEL_STYLE}><Building size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />{t('locationLine2')}</label>
             <input style={INPUT_STYLE} value={form.event_location_line2}
               onChange={(e) => handleChange('event_location_line2', e.target.value)}
-              placeholder="Nouakchott" />
+              placeholder={t('locationLine2Placeholder')} />
           </div>
         </div>
 
         <button className="btn btn-primary" onClick={saveSettings} style={{ marginTop: '1.5rem', width: 'auto', padding: '0.75rem 2rem' }}>
-          <Save size={16} /> Save All Settings
+          <Save size={16} /> {t('saveAllSettings')}
         </button>
       </div>
     </div>

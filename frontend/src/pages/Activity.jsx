@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../contexts/SocketContext';
+import { useI18n } from '../i18n/I18nContext';
 import {
   Activity as ActivityIcon,
   CheckCircle2,
@@ -8,8 +9,6 @@ import {
   XCircle,
   Clock,
   RefreshCw,
-  Wifi,
-  WifiOff,
   ScanLine,
   LogIn,
   LogOut
@@ -37,6 +36,7 @@ export default function Activity() {
   const [loading, setLoading] = useState(true);
   const { token } = useAuth();
   const socket = useSocket();
+  const { t } = useI18n();
 
   useEffect(() => { fetchActivities(); }, []);
 
@@ -89,11 +89,11 @@ export default function Activity() {
 
   const getActionLabel = (action) => {
     switch (action) {
-      case 'check_in': return 'Check-in';
-      case 'scan_duplicate': return 'Duplicate';
-      case 'scan_failed': return 'Failed';
-      case 'scanner_online': return 'Online';
-      case 'scanner_offline': return 'Offline';
+      case 'check_in': return t('checkInAction');
+      case 'scan_duplicate': return t('duplicate');
+      case 'scan_failed': return t('failed');
+      case 'scanner_online': return t('online');
+      case 'scanner_offline': return t('offline');
       default: return action;
     }
   };
@@ -102,7 +102,7 @@ export default function Activity() {
     const date = new Date(timestamp);
     const now = new Date();
     const diff = now - date;
-    if (diff < 60000) return 'Just now';
+    if (diff < 60000) return t('justNow');
     if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
     if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -111,21 +111,22 @@ export default function Activity() {
   return (
     <div>
       <div className="page-header">
-        <h1>Live Activity</h1>
-        <p>Real-time feed of all scanner activity</p>
+        <h1>{t('liveActivity')}</h1>
+        <p>{t('activityDesc')}</p>
       </div>
 
       <div className="recent-scans">
-        <div className="section-header activity-header-row">          <div className="section-icon">
+        <div className="section-header activity-header-row">
+          <div className="section-icon">
             <ActivityIcon size={18} />
           </div>
-          <h3>Activity Stream</h3>
+          <h3>{t('activityStream')}</h3>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span className="live-dot" />
-            <span style={{ fontSize: '0.8rem', color: 'var(--success)', fontWeight: 600 }}>LIVE</span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--success)', fontWeight: 600 }}>{t('live')}</span>
           </div>
           <button className="btn btn-secondary btn-sm" onClick={fetchActivities} style={{ marginLeft: '0.5rem' }}>
-            <RefreshCw size={14} /> Refresh
+            <RefreshCw size={14} /> {t('refresh')}
           </button>
         </div>
 
@@ -134,9 +135,9 @@ export default function Activity() {
         ) : activities.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon"><ActivityIcon size={28} /></div>
-            <p>No activity yet</p>
+            <p>{t('noActivityYet')}</p>
             <p style={{ fontSize: '0.85rem', marginTop: '0.25rem' }}>
-              Activity will appear here in real-time as scanners check in guests
+              {t('noActivityDesc')}
             </p>
           </div>
         ) : (
@@ -150,19 +151,19 @@ export default function Activity() {
                   <div className="activity-text">
                     <strong>{item.username}</strong>
                     {item.action === 'check_in' && (
-                      <> checked in <strong>{item.guest_name}</strong></>
+                      <> {t('checkedInText')} <strong>{item.guest_name}</strong></>
                     )}
                     {item.action === 'scan_duplicate' && (
-                      <> attempted duplicate scan for <strong>{item.guest_name}</strong></>
+                      <> {t('duplicateScanFor')} <strong>{item.guest_name}</strong></>
                     )}
                     {item.action === 'scan_failed' && (
-                      <> scanned an unknown QR code</>
+                      <> {t('scannedUnknownQR')}</>
                     )}
                     {item.action === 'scanner_online' && (
-                      <span style={{ color: 'var(--success)' }}> connected as scanner</span>
+                      <span style={{ color: 'var(--success)' }}> {t('connectedAsScanner')}</span>
                     )}
                     {item.action === 'scanner_offline' && (
-                      <span style={{ color: 'var(--text-muted)' }}> disconnected</span>
+                      <span style={{ color: 'var(--text-muted)' }}> {t('disconnected')}</span>
                     )}
                   </div>
                   <div className="activity-time">

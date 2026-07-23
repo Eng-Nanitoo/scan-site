@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useI18n } from '../i18n/I18nContext';
 import {
   Users as UsersIcon,
   UserPlus,
@@ -31,6 +32,7 @@ export default function SuperAdmin() {
   const [password, setPassword] = useState('');
   const [showForm, setShowForm] = useState(false);
   const { token } = useAuth();
+  const { t } = useI18n();
 
   useEffect(() => { fetchSubadmins(); }, []);
 
@@ -74,7 +76,7 @@ export default function SuperAdmin() {
   };
 
   const deleteSubadmin = async (id) => {
-    if (!confirm('Delete this sub-admin and all their data?')) return;
+    if (!confirm(t('deleteSubAdminConfirm'))) return;
     try {
       const res = await fetch(`/api/superadmin/subadmins/${id}`, {
         method: 'DELETE',
@@ -88,23 +90,23 @@ export default function SuperAdmin() {
   return (
     <div>
       <div className="page-header">
-        <h1>Manage Sub-Admins</h1>
-        <p>Create and manage sub-admin accounts</p>
+        <h1>{t('manageSubAdmins')}</h1>
+        <p>{t('subAdminsDesc')}</p>
       </div>
 
       {!showForm ? (
         <button className="btn btn-primary" onClick={() => setShowForm(true)} style={{ marginBottom: '1rem' }}>
-          <UserPlus size={16} /> Add Sub-Admin
+          <UserPlus size={16} /> {t('addSubAdmin')}
         </button>
       ) : (
         <form className="add-user-form" onSubmit={addSubadmin} style={{ marginBottom: '1rem' }}>
-          <input type="text" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
-          <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <input type="text" placeholder={t('username')} value={username} onChange={(e) => setUsername(e.target.value)} />
+          <input type="password" placeholder={t('password')} value={password} onChange={(e) => setPassword(e.target.value)} />
           <button type="submit" className="btn btn-primary btn-sm">
-            <UserPlus size={14} /> Create
+            <UserPlus size={14} /> {t('create')}
           </button>
           <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setShowForm(false); setUsername(''); setPassword(''); }}>
-            Cancel
+            {t('cancel')}
           </button>
         </form>
       )}
@@ -113,12 +115,12 @@ export default function SuperAdmin() {
         <table>
           <thead>
             <tr>
-              <th>Username</th>
-              <th>Status</th>
-              <th>Cards</th>
-              <th>Scanners</th>
-              <th>Created</th>
-              <th>Actions</th>
+              <th>{t('username')}</th>
+              <th>{t('status')}</th>
+              <th>{t('cards')}</th>
+              <th>{t('scanners')}</th>
+              <th>{t('created')}</th>
+              <th>{t('actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -129,13 +131,13 @@ export default function SuperAdmin() {
                 <SubAdminSkeleton />
               </>
             ) : subadmins.length === 0 ? (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>No sub-admins yet</td></tr>
+              <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>{t('noSubAdmins')}</td></tr>
             ) : subadmins.map(sa => (
               <tr key={sa.id}>
                 <td style={{ fontWeight: 500 }}>{sa.username}</td>
                 <td>
                   <span className={`role-badge ${sa.active ? 'active' : 'inactive'}`}>
-                    {sa.active ? <><UserCheck size={12} /> Active</> : <><UserX size={12} /> Inactive</>}
+                    {sa.active ? <><UserCheck size={12} /> {t('active')}</> : <><UserX size={12} /> {t('inactive')}</>}
                   </span>
                 </td>
                 <td><CreditCard size={14} style={{ marginRight: 4 }} />{sa.card_count}</td>
@@ -145,7 +147,7 @@ export default function SuperAdmin() {
                   <button
                     className={`btn btn-sm ${sa.active ? 'btn-warning' : 'btn-primary'}`}
                     onClick={() => toggleSubadmin(sa.id)}
-                    title={sa.active ? 'Deactivate' : 'Activate'}
+                    title={sa.active ? t('deactivate') : t('activate')}
                   >
                     {sa.active ? <UserX size={14} /> : <UserCheck size={14} />}
                   </button>

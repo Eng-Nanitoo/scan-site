@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useI18n } from '../i18n/I18nContext';
 import TicketCard from '../components/TicketCard';
 import QRCode from 'qrcode';
 import {
@@ -20,6 +21,7 @@ export default function Cards() {
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState({});
   const { token } = useAuth();
+  const { t } = useI18n();
 
   useEffect(() => {
     fetchCards();
@@ -51,7 +53,7 @@ export default function Cards() {
   };
 
   const deleteCard = async (id) => {
-    if (!confirm('Delete this card?')) return;
+    if (!confirm(t('deleteCardConfirm'))) return;
     try {
       await fetch(`/api/cards/${id}`, {
         method: 'DELETE',
@@ -64,7 +66,7 @@ export default function Cards() {
   };
 
   const deleteAllCards = async () => {
-    if (!confirm(`Delete ALL ${cards.length} cards? This cannot be undone.`)) return;
+    if (!confirm(t('deleteAllConfirm', { count: cards.length }))) return;
     try {
       const res = await fetch('/api/cards/all', {
         method: 'DELETE',
@@ -80,7 +82,7 @@ export default function Cards() {
 
   const getTicketProps = useCallback((card) => ({
     orgLogoText: settings.org_logo_text || '',
-    eventTitle: settings.event_name || 'Graduation Party',
+    eventTitle: settings.event_name || t('graduationParty'),
     eventSubtitle: settings.event_subtitle || '',
     qrValue: card.unique_key,
     qrCenterInitial: card.guest_name?.charAt(0)?.toUpperCase() || '',
@@ -89,7 +91,7 @@ export default function Cards() {
     time: settings.event_time || '',
     locationLine1: settings.event_location_line1 || '',
     locationLine2: settings.event_location_line2 || '',
-  }), [settings]);
+  }), [settings, t]);
 
   const buildTicketHtml = (p, qrDataUrl) => `
     <div style="max-width:420px;margin:0 auto;background:#fff;border-radius:24px;
@@ -124,12 +126,12 @@ export default function Cards() {
       </div>
       <div style="padding:0 24px 24px;display:flex;justify-content:space-between">
         <div style="text-align:left">
-          <div style="font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:4px">Date &amp; Time</div>
+          <div style="font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:4px">${t('datetimeLabel')}</div>
           ${p.date ? `<div style="font-size:15px;font-weight:700;color:#111;line-height:1.4">${esc(p.date)}</div>` : ''}
           ${p.time ? `<div style="font-size:15px;font-weight:700;color:#111;line-height:1.4">${esc(p.time)}</div>` : ''}
         </div>
         <div style="text-align:right">
-          <div style="font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:4px">Location</div>
+          <div style="font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:4px">${t('locationLabel')}</div>
           ${p.locationLine1 ? `<div style="font-size:15px;font-weight:700;color:#111;line-height:1.4">${esc(p.locationLine1)}</div>` : ''}
           ${p.locationLine2 ? `<div style="font-size:15px;font-weight:700;color:#111;line-height:1.4">${esc(p.locationLine2)}</div>` : ''}
         </div>
@@ -195,12 +197,12 @@ export default function Cards() {
         </div>
         <div style="display:flex;justify-content:space-between;padding:0 4px">
           <div style="text-align:left">
-            <div style="font-size:clamp(4px,1.1vw,5.5px);font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:0.5px">Date &amp; Time</div>
+            <div style="font-size:clamp(4px,1.1vw,5.5px);font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:0.5px">${t('datetimeLabel')}</div>
             ${p.date ? `<div style="font-size:clamp(5px,1.4vw,7px);font-weight:700;color:#111;line-height:1.15">${esc(p.date)}</div>` : ''}
             ${p.time ? `<div style="font-size:clamp(5px,1.4vw,7px);font-weight:700;color:#111;line-height:1.15">${esc(p.time)}</div>` : ''}
           </div>
           <div style="text-align:right">
-            <div style="font-size:clamp(4px,1.1vw,5.5px);font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:0.5px">Location</div>
+            <div style="font-size:clamp(4px,1.1vw,5.5px);font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:0.5px">${t('locationLabel')}</div>
             ${p.locationLine1 ? `<div style="font-size:clamp(5px,1.4vw,7px);font-weight:700;color:#111;line-height:1.15">${esc(p.locationLine1)}</div>` : ''}
             ${p.locationLine2 ? `<div style="font-size:clamp(5px,1.4vw,7px);font-weight:700;color:#111;line-height:1.15">${esc(p.locationLine2)}</div>` : ''}
           </div>
@@ -424,8 +426,8 @@ export default function Cards() {
   if (loading) return (
     <div>
       <div className="page-header">
-        <h1>Invitation Cards</h1>
-        <p>Manage all generated invitation cards</p>
+        <h1>{t('invitationCards')}</h1>
+        <p>{t('cardsDesc')}</p>
       </div>
       <div className="cards-grid">
         {[1, 2, 3, 4, 5, 6].map(i => (
@@ -447,27 +449,27 @@ export default function Cards() {
   return (
     <div>
       <div className="page-header">
-        <h1>Invitation Cards</h1>
-        <p>Manage all generated invitation cards</p>
+        <h1>{t('invitationCards')}</h1>
+        <p>{t('cardsDesc')}</p>
       </div>
 
       <div className="cards-header">
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-          {cards.length} cards total
+          {cards.length} {t('cardsTotal')}
         </p>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           {cards.length > 0 && (
             <>
               <button className="btn btn-secondary btn-sm" onClick={printAllCards}>
-                <Layers size={14} /> Print All
+                <Layers size={14} /> {t('printAll')}
               </button>
               <button className="btn btn-danger btn-sm" onClick={deleteAllCards}>
-                <Trash size={14} /> Delete All
+                <Trash size={14} /> {t('deleteAll')}
               </button>
             </>
           )}
           <Link to="/cards/generate" className="btn btn-primary btn-sm">
-            <Plus size={16} /> Generate Cards
+            <Plus size={16} /> {t('generateCards')}
           </Link>
         </div>
       </div>
@@ -475,9 +477,9 @@ export default function Cards() {
       {cards.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon"><CreditCard size={28} /></div>
-          <p>No cards generated yet</p>
+          <p>{t('noCardsGenerated')}</p>
           <Link to="/cards/generate" className="btn btn-primary" style={{ marginTop: '1rem', display: 'inline-flex' }}>
-            <Plus size={16} /> Generate Your First Cards
+            <Plus size={16} /> {t('generateFirstCards')}
           </Link>
         </div>
       ) : (
@@ -505,15 +507,15 @@ export default function Cards() {
                 <div className="guest-name">{card.guest_name}</div>
                 <div className="card-key">{card.unique_key}</div>
                 <span className={`card-status ${card.scanned ? 'scanned' : 'pending'}`}>
-                  {card.scanned ? <><CheckCircle2 size={12} /> Checked in</> : <><Clock size={12} /> Pending</>}
+                  {card.scanned ? <><CheckCircle2 size={12} /> {t('checkedIn')}</> : <><Clock size={12} /> {t('pending')}</>}
                 </span>
               </div>
               <div className="card-actions">
                 <button className="btn btn-secondary btn-sm" onClick={() => printCard(card)}>
-                  <Printer size={14} /> Print
+                  <Printer size={14} /> {t('printAll')}
                 </button>
                 <button className="btn btn-secondary btn-sm" onClick={() => downloadCard(card)}>
-                  <Download size={14} /> Save
+                  <Download size={14} /> {t('save')}
                 </button>
                 <button className="btn btn-danger btn-sm" onClick={() => deleteCard(card.id)}>
                   <Trash2 size={14} />

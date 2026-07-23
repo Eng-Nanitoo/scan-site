@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../contexts/SocketContext';
+import { useI18n } from '../i18n/I18nContext';
 import { Html5Qrcode } from 'html5-qrcode';
 import { getCardByKey, markCardScannedLocally, getCardsCount } from '../lib/offlineDb';
 import { syncCardsFromServer, syncQueuedScans, syncSettingsFromServer } from '../lib/sync';
@@ -85,6 +86,7 @@ function playAlreadyScanned() {
 }
 
 export default function Scanner() {
+  const { t } = useI18n();
   const [scanResult, setScanResult] = useState(null);
   const [popupOpen, setPopupOpen] = useState(false);
   const [cameraStarted, setCameraStarted] = useState(false);
@@ -211,14 +213,14 @@ export default function Scanner() {
         lastScannedKeyRef.current = decodedText;
         lastScannedTimeRef.current = Date.now();
         playInvalid();
-        showPopup({ type: 'error', title: 'Invalid QR', message: 'This QR code is not recognized.', icon: 'error' });
+        showPopup({ type: 'error', title: t('invalidQR'), message: t('invalidQRMsg'), icon: 'error' });
         return;
       }
       if (card.scanned) {
         lastScannedKeyRef.current = decodedText;
         lastScannedTimeRef.current = Date.now();
         playAlreadyScanned();
-        showPopup({ type: 'warning', title: 'Already Scanned', message: `${card.guest_name} has already checked in.`, icon: 'warning' });
+        showPopup({ type: 'warning', title: t('alreadyScanned'), message: t('alreadyScannedMsg', { name: card.guest_name }), icon: 'warning' });
         return;
       }
       const { addToQueue } = await import('../lib/offlineDb');
@@ -229,7 +231,7 @@ export default function Scanner() {
       lastScannedKeyRef.current = decodedText;
       lastScannedTimeRef.current = Date.now();
       playSuccess();
-      showPopup({ type: 'success', title: 'Checked In', message: `${card.guest_name} checked in successfully (offline).`, icon: 'success' });
+      showPopup({ type: 'success', title: t('checkedInSuccess'), message: t('checkedInOfflineMsg', { name: card.guest_name }), icon: 'success' });
       await refreshLocalData();
       return;
     }
@@ -247,14 +249,14 @@ export default function Scanner() {
 
       if (res.ok) {
         playSuccess();
-        showPopup({ type: 'success', title: 'Checked In', message: `${data.guest_name} checked in successfully!`, icon: 'success' });
+        showPopup({ type: 'success', title: t('checkedInSuccess'), message: t('checkedInSuccessMsg', { name: data.guest_name }), icon: 'success' });
         await markCardScannedLocally(decodedText, data.scanned_at);
       } else if (data.status === 'already_scanned') {
         playAlreadyScanned();
-        showPopup({ type: 'warning', title: 'Already Scanned', message: `${data.guest_name} has already checked in.`, icon: 'warning' });
+        showPopup({ type: 'warning', title: t('alreadyScanned'), message: t('alreadyScannedMsg', { name: data.guest_name }), icon: 'warning' });
       } else {
         playInvalid();
-        showPopup({ type: 'error', title: 'Invalid QR', message: data.error || 'This QR code is not valid.', icon: 'error' });
+        showPopup({ type: 'error', title: t('invalidQR'), message: data.error || t('invalidQRMsg2'), icon: 'error' });
       }
     } catch (error) {
       lastScannedKeyRef.current = decodedText;
@@ -264,9 +266,9 @@ export default function Scanner() {
       const q = await (await import('../lib/offlineDb')).getQueue();
       setQueuedScans(q);
       playInvalid();
-      showPopup({ type: 'error', title: 'Connection Lost', message: 'Scan queued. It will sync when you are back online.', icon: 'offline' });
+      showPopup({ type: 'error', title: t('connectionLost'), message: t('connectionLostMsg'), icon: 'offline' });
     }
-  }, [isOnline, token, refreshLocalData, showPopup]);
+  }, [isOnline, token, refreshLocalData, showPopup, t]);
 
   const startScanner = async () => {
     setStarting(true);
@@ -287,13 +289,13 @@ export default function Scanner() {
       setCameraStarted(false);
       const msg = error?.message || String(error);
       if (msg.includes('NotAllowedError') || msg.includes('Permission') || msg.includes('permission')) {
-        showPopup({ type: 'error', title: 'Camera Denied', message: 'Allow camera access in Settings > Safari.', icon: 'error' });
+        showPopup({ type: 'error', title: t('cameraDenied'), message: t('cameraDeniedMsg'), icon: 'error' });
       } else if (msg.includes('NotFoundError') || msg.includes('not found')) {
-        showPopup({ type: 'error', title: 'No Camera', message: 'No camera found on this device.', icon: 'error' });
+        showPopup({ type: 'error', title: t('noCamera'), message: t('noCameraMsg'), icon: 'error' });
       } else if (msg.includes('NotReadableError') || msg.includes('could not start') || msg.includes('Could not start')) {
-        showPopup({ type: 'error', title: 'Camera Busy', message: 'Camera is in use by another app.', icon: 'error' });
+        showPopup({ type: 'error', title: t('cameraBusy'), message: t('cameraBusyMsg'), icon: 'error' });
       } else {
-        showPopup({ type: 'error', title: 'Camera Error', message: msg, icon: 'error' });
+        showPopup({ type: 'error', title: t('cameraError'), message: msg, icon: 'error' });
       }
     }
   };
@@ -329,7 +331,7 @@ export default function Scanner() {
             <ScanLine size={20} />
           </div>
           <div>
-            <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Scanner Mode</h2>
+            <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>{t('scannerMode')}</h2>
             <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.8rem' }}>
               <User size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
               {user?.username}
@@ -339,11 +341,11 @@ export default function Scanner() {
         <div className="scanner-topbar-right" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           {user?.role === 'admin' && (
             <button className="btn btn-secondary btn-sm" onClick={() => { stopScanner(); navigate('/'); }}>
-              <LayoutDashboard size={14} /> Dashboard
+              <LayoutDashboard size={14} /> {t('dashboardBtn')}
             </button>
           )}
           <button className="btn btn-danger btn-sm" onClick={handleLogout}>
-            <LogOut size={14} /> Logout
+            <LogOut size={14} /> {t('signOut')}
           </button>
         </div>
       </div>
@@ -360,18 +362,18 @@ export default function Scanner() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               {isOnline ? <Wifi size={18} /> : <WifiOff size={18} />}
-              {isOnline ? 'Connected' : 'Offline Mode'}
+              {isOnline ? t('connected') : t('offlineMode')}
             </div>
             {cachedCards > 0 && (
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', opacity: 0.8 }}>
-                <Database size={12} /> {cachedCards} cards cached
+                <Database size={12} /> {cachedCards} {t('cardsCached')}
               </span>
             )}
           </div>
           {queuedScans.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <span style={{ padding: '0.2rem 0.6rem', borderRadius: 6, fontSize: '0.75rem', background: 'rgba(255,255,255,0.15)' }}>
-                {queuedScans.length} queued
+                {queuedScans.length} {t('queued')}
               </span>
               {isOnline && (
                 <button onClick={doSyncQueuedScans} disabled={syncing} style={{
@@ -381,7 +383,7 @@ export default function Scanner() {
                   fontSize: '0.75rem', fontWeight: 600, fontFamily: 'inherit'
                 }}>
                   <RefreshCw size={12} className={syncing ? 'spin' : ''} />
-                  {syncing ? 'Syncing...' : 'Sync Now'}
+                  {syncing ? t('syncing') : t('syncNow')}
                 </button>
               )}
             </div>
@@ -394,11 +396,11 @@ export default function Scanner() {
               <div className="stat-header">
                 <div className="stat-icon green"><CheckCircle2 size={20} /></div>
                 <span style={{ fontSize: '0.85rem', color: 'var(--success)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span className="live-dot" /> LIVE
+                  <span className="live-dot" /> {t('live')}
                 </span>
               </div>
               <div className="stat-value">{stats.scanned}/{stats.total}</div>
-              <div className="stat-label">Checked In</div>
+              <div className="stat-label">{t('checkedIn')}</div>
               <div className="progress-bar">
                 <div className="progress-bar-fill" style={{ width: `${stats.percentage}%` }} />
               </div>
@@ -414,7 +416,7 @@ export default function Scanner() {
             animation: 'slideIn 0.3s'
           }}>
             <Bell size={18} />
-            <span><strong>{liveActivity.guest_name}</strong> checked in by {liveActivity.scanned_by}</span>
+            <span><strong>{liveActivity.guest_name}</strong> {t('checkedInBy')} {liveActivity.scanned_by}</span>
           </div>
         )}
 
@@ -431,9 +433,9 @@ export default function Scanner() {
                   <Camera size={36} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.25rem' }}>Ready to Scan</h3>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.25rem' }}>{t('readyToScan')}</h3>
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                    Tap the button below to start your camera
+                    {t('tapToStart')}
                   </p>
                 </div>
                 <button
@@ -441,7 +443,7 @@ export default function Scanner() {
                   onClick={startScanner}
                   style={{ width: 'auto', padding: '1rem 2rem', fontSize: '1rem' }}
                 >
-                  <Camera size={18} /> Start Camera
+                  <Camera size={18} /> {t('startCamera')}
                 </button>
 
                 <div style={{
@@ -452,7 +454,7 @@ export default function Scanner() {
                     width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem'
                   }}>
                     <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-                    <span style={{ color: 'var(--text-dim)', fontSize: '0.8rem', fontWeight: 600, whiteSpace: 'nowrap' }}>or enter code manually</span>
+                    <span style={{ color: 'var(--text-dim)', fontSize: '0.8rem', fontWeight: 600, whiteSpace: 'nowrap' }}>{t('orEnterManually')}</span>
                     <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
                   </div>
                   <form
@@ -469,7 +471,7 @@ export default function Scanner() {
                       type="text"
                       value={manualCode}
                       onChange={(e) => setManualCode(e.target.value)}
-                      placeholder="Type or paste invitation code"
+                      placeholder={t('enterCodePlaceholder')}
                       style={{
                         flex: 1, padding: '0.75rem 1rem', borderRadius: 'var(--radius)',
                         border: '1px solid var(--border)', background: 'var(--bg)',
@@ -489,7 +491,7 @@ export default function Scanner() {
                 </div>
 
                 <p style={{ color: 'var(--text-dim)', fontSize: '0.75rem', maxWidth: 280 }}>
-                  Camera requires HTTPS on iOS. Works fully offline once cards are cached.
+                  {t('cameraRequiresHTTPS')}
                 </p>
               </div>
             </div>
@@ -497,7 +499,7 @@ export default function Scanner() {
         </div>
 
         <div style={{ textAlign: 'center', marginTop: '1.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-          {cameraStarted ? 'Point your camera at a QR code to scan' : 'Start camera or enter code manually above'}
+          {cameraStarted ? t('pointCamera') : t('startOrEnter')}
         </div>
       </div>
 
@@ -553,7 +555,7 @@ export default function Scanner() {
               onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
               autoFocus
             >
-              {scanResult.type === 'success' ? 'Done' : 'Close'}
+              {scanResult.type === 'success' ? t('done') : t('close')}
             </button>
           </div>
         </div>

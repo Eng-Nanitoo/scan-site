@@ -1250,3 +1250,43 @@ textarea::placeholder {
     margin: 1rem;
   }
 }
+
+/* RTL Support */
+[dir="rtl"] .sidebar-brand > div:last-child h2,
+[dir="rtl"] .sidebar-brand > div:last-child span {
+  text-align: right;
+}
+
+[dir="rtl"] .user-info > div:last-child {
+  text-align: right;
+}
+
+[dir="rtl"] .page-header {
+  text-align: right;
+}
+
+[dir="rtl"] .section-header {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .activity-header-row h3 {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+[dir="rtl"] .activity-badge {
+  margin-right: 0;
+  margin-left: auto;
+}
+
+[dir="rtl"] .add-user-form {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .nav-links {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] input, [dir="rtl"] select, [dir="rtl"] textarea {
+  text-align: right;
+}

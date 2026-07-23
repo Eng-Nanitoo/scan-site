@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../contexts/SocketContext';
+import { useI18n } from '../i18n/I18nContext';
 import {
   Users,
   CheckCircle2,
@@ -45,6 +46,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const { token } = useAuth();
   const socket = useSocket();
+  const { t } = useI18n();
 
   useEffect(() => {
     fetchStats();
@@ -95,8 +97,8 @@ export default function Dashboard() {
     return (
       <div>
         <div className="page-header">
-          <h1>Dashboard</h1>
-          <p>Overview of your graduation party check-in</p>
+          <h1>{t('dashboard')}</h1>
+          <p>{t('dashboardDesc')}</p>
         </div>
         <div className="stats-grid">
           <StatSkeleton /><StatSkeleton /><StatSkeleton /><StatSkeleton />
@@ -105,14 +107,14 @@ export default function Dashboard() {
           <div className="recent-scans">
             <div className="section-header">
               <div className="section-icon"><ScanLine size={18} /></div>
-              <h3>Scanner Status</h3>
+              <h3>{t('scannerStatus')}</h3>
             </div>
             <TableSkeleton />
           </div>
           <div className="recent-scans">
             <div className="section-header">
               <div className="section-icon"><Activity size={18} /></div>
-              <h3>Recent Check-ins</h3>
+              <h3>{t('recentCheckins')}</h3>
             </div>
             <TableSkeleton />
           </div>
@@ -120,15 +122,15 @@ export default function Dashboard() {
       </div>
     );
   }
-  if (!stats) return <div>Failed to load stats</div>;
+  if (!stats) return <div>{t('failedToLoadStats')}</div>;
 
   const onlineScanners = scanners.filter(s => s.username !== 'admin');
 
   return (
     <div>
       <div className="page-header">
-        <h1>Dashboard</h1>
-        <p>Overview of your graduation party check-in</p>
+        <h1>{t('dashboard')}</h1>
+        <p>{t('dashboardDesc')}</p>
       </div>
 
       <div className="stats-grid">
@@ -137,7 +139,7 @@ export default function Dashboard() {
             <div className="stat-icon purple"><Users size={20} /></div>
           </div>
           <div className="stat-value">{stats.total}</div>
-          <div className="stat-label">Total Invitations</div>
+          <div className="stat-label">{t('totalInvitations')}</div>
         </div>
 
         <div className="stat-card">
@@ -145,7 +147,7 @@ export default function Dashboard() {
             <div className="stat-icon green"><CheckCircle2 size={20} /></div>
           </div>
           <div className="stat-value">{stats.scanned}</div>
-          <div className="stat-label">Checked In</div>
+          <div className="stat-label">{t('checkedIn')}</div>
         </div>
 
         <div className="stat-card">
@@ -153,7 +155,7 @@ export default function Dashboard() {
             <div className="stat-icon yellow"><Clock size={20} /></div>
           </div>
           <div className="stat-value">{stats.pending}</div>
-          <div className="stat-label">Pending</div>
+          <div className="stat-label">{t('pending')}</div>
         </div>
 
         <div className="stat-card">
@@ -161,7 +163,7 @@ export default function Dashboard() {
             <div className="stat-icon blue"><TrendingUp size={20} /></div>
           </div>
           <div className="stat-value">{stats.percentage}%</div>
-          <div className="stat-label">Check-in Rate</div>
+          <div className="stat-label">{t('checkInRate')}</div>
           <div className="progress-bar">
             <div className="progress-bar-fill" style={{ width: `${stats.percentage}%` }} />
           </div>
@@ -172,17 +174,17 @@ export default function Dashboard() {
         <div className="recent-scans">
           <div className="section-header">
             <div className="section-icon"><ScanLine size={18} /></div>
-            <h3>Scanner Status</h3>
+            <h3>{t('scannerStatus')}</h3>
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <span className="live-dot" />
-              <span style={{ fontSize: '0.75rem', color: 'var(--success)', fontWeight: 600 }}>LIVE</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--success)', fontWeight: 600 }}>{t('live')}</span>
             </div>
           </div>
 
           {onlineScanners.length === 0 ? (
             <div style={{ padding: '1rem 0', color: 'var(--text-dim)', fontSize: '0.9rem', textAlign: 'center' }}>
               <WifiOff size={24} style={{ margin: '0 auto 0.5rem', display: 'block', opacity: 0.5 }} />
-              No scanners online
+              {t('noScannersOnline')}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -209,7 +211,7 @@ export default function Dashboard() {
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{scanner.username}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-                      Connected {new Date(scanner.connectedAt).toLocaleTimeString()}
+                      {t('connected')} {new Date(scanner.connectedAt).toLocaleTimeString()}
                     </div>
                   </div>
                   <span style={{
@@ -217,7 +219,7 @@ export default function Dashboard() {
                     padding: '0.25rem 0.6rem', borderRadius: 6, fontSize: '0.7rem',
                     fontWeight: 600, background: 'var(--success-bg)', color: 'var(--success)'
                   }}>
-                    <Wifi size={12} /> Online
+                    <Wifi size={12} /> {t('online')}
                   </span>
                 </div>
               ))}
@@ -228,21 +230,21 @@ export default function Dashboard() {
         <div className="recent-scans">
           <div className="section-header">
             <div className="section-icon"><Activity size={18} /></div>
-            <h3>Recent Check-ins</h3>
+            <h3>{t('recentCheckins')}</h3>
           </div>
 
           {stats.recent_scans.length === 0 ? (
             <div className="empty-state">
               <div className="empty-icon"><UserCheck size={28} /></div>
-              <p>No check-ins yet</p>
+              <p>{t('noCheckinsYet')}</p>
             </div>
           ) : (
             <table>
               <thead>
                 <tr>
-                  <th>Guest</th>
-                  <th>By</th>
-                  <th>Time</th>
+                  <th>{t('guest')}</th>
+                  <th>{t('by')}</th>
+                  <th>{t('time')}</th>
                 </tr>
               </thead>
               <tbody>

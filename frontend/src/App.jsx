@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
+import { useI18n } from './i18n/I18nContext';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Activity from './pages/Activity';
@@ -16,9 +17,10 @@ const Scanner = lazy(() => import('./pages/Scanner'));
 
 function ProtectedRoute({ children, adminOnly = false, superAdminOnly = false }) {
   const { user, loading } = useAuth();
+  const { t } = useI18n();
 
   if (loading) {
-    return <div className="loading">Loading...</div>;
+    return <div className="loading">{t('loading')}</div>;
   }
 
   if (!user) {
@@ -38,9 +40,10 @@ function ProtectedRoute({ children, adminOnly = false, superAdminOnly = false })
 
 export default function App() {
   const { user, loading } = useAuth();
+  const { t } = useI18n();
 
   if (loading) {
-    return <div className="loading">Loading...</div>;
+    return <div className="loading">{t('loading')}</div>;
   }
 
   return (
@@ -75,7 +78,7 @@ export default function App() {
 
       <Route path="/scanner" element={
         <ProtectedRoute>
-          <Suspense fallback={<div className="loading">Loading scanner...</div>}>
+          <Suspense fallback={<div className="loading">{t('loadingScanner')}</div>}>
             <Scanner />
           </Suspense>
         </ProtectedRoute>

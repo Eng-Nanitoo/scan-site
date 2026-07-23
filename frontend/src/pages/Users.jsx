@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useI18n } from '../i18n/I18nContext';
 import {
   Users as UsersIcon,
   UserPlus,
@@ -26,6 +27,7 @@ export default function Users() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const { token, user } = useAuth();
+  const { t } = useI18n();
   const isSuperAdmin = user?.role === 'superadmin';
 
   useEffect(() => { fetchUsers(); }, []);
@@ -57,7 +59,7 @@ export default function Users() {
   };
 
   const deleteUser = async (id) => {
-    if (!confirm('Delete this user?')) return;
+    if (!confirm(t('deleteUserConfirm'))) return;
     try {
       const res = await fetch(`/api/auth/scanners/${id}`, {
         method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
@@ -71,8 +73,8 @@ export default function Users() {
     return (
       <div>
         <div className="page-header">
-          <h1>Manage Users</h1>
-          <p>Super admin cannot create scanners directly. Sub-admins manage their own scanners.</p>
+          <h1>{t('manageUsers')}</h1>
+          <p>{t('superAdminNoScanners')}</p>
         </div>
       </div>
     );
@@ -81,15 +83,15 @@ export default function Users() {
   return (
     <div>
       <div className="page-header">
-        <h1>Manage Users</h1>
-        <p>Add or remove scanners who can check-in guests</p>
+        <h1>{t('manageUsers')}</h1>
+        <p>{t('addRemoveScanners')}</p>
       </div>
 
       <form className="add-user-form" onSubmit={addUser}>
-        <input type="text" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
-        <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <input type="text" placeholder={t('username')} value={username} onChange={(e) => setUsername(e.target.value)} />
+        <input type="password" placeholder={t('password')} value={password} onChange={(e) => setPassword(e.target.value)} />
         <button type="submit" className="btn btn-primary btn-sm">
-          <UserPlus size={14} /> Add Scanner
+          <UserPlus size={14} /> {t('addScanner')}
         </button>
       </form>
 
@@ -97,10 +99,10 @@ export default function Users() {
         <table>
           <thead>
             <tr>
-              <th>Username</th>
-              <th>Role</th>
-              <th>Created</th>
-              <th>Actions</th>
+              <th>{t('username')}</th>
+              <th>{t('role')}</th>
+              <th>{t('created')}</th>
+              <th>{t('actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -116,7 +118,7 @@ export default function Users() {
                 <td>
                   <span className={`role-badge ${u.role}`}>
                     {u.role === 'admin' ? <Crown size={12} /> : <ScanLine size={12} />}
-                    {u.role}
+                    {u.role === 'admin' ? t('admin') : t('scanner')}
                   </span>
                 </td>
                 <td style={{ color: 'var(--text-muted)' }}>{new Date(u.created_at).toLocaleDateString()}</td>
