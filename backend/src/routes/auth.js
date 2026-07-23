@@ -16,21 +16,31 @@ router.post('/login', async (req, res) => {
     }
 
     const user = result.rows[0];
+
+    if (user.active === false) {
+      return res.status(403).json({ error: 'Account is deactivated. Contact administrator.' });
+    }
+
     const validPassword = await bcrypt.compare(password, user.password_hash);
 
     if (!validPassword) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    const tokenPayload = { id: user.id, username: user.username, role: user.role };
+    if (user.subadmin_id) {
+      tokenPayload.subadmin_id = user.subadmin_id;
+    }
+
     const token = jwt.sign(
-      { id: user.id, username: user.username, role: user.role },
+      tokenPayload,
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
 
     res.json({
       token,
-      user: { id: user.id, username: user.username, role: user.role }
+      user: { id: user.id, username: user.username, role: user.role, subadmin_id: user.subadmin_id || null }
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -54,9 +64,16 @@ router.post('/register', authMiddleware, adminOnly, async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
+    let subadminId = null;
+    if (req.user.role === 'subadmin') {
+      subadminId = req.user.id;
+    }
+
+    const insertRole = req.user.role === 'superadmin' ? (role || 'scanner') : 'scanner';
+
     const result = await pool.query(
-      'INSERT INTO users (username, password_hash, role) VALUES ($1, $2, $3) RETURNING id, username, role',
-      [username, passwordHash, role || 'scanner']
+      'INSERT INTO users (username, password_hash, role, subadmin_id) VALUES ($1, $2, $3, $4) RETURNING id, username, role, subadmin_id',
+      [username, passwordHash, insertRole, subadminId]
     );
 
     res.status(201).json(result.rows[0]);
@@ -68,9 +85,17 @@ router.post('/register', authMiddleware, adminOnly, async (req, res) => {
 
 router.get('/scanners', authMiddleware, adminOnly, async (req, res) => {
   try {
-    const result = await pool.query(
-      'SELECT id, username, role, created_at FROM users ORDER BY created_at DESC'
-    );
+    let result;
+    if (req.user.role === 'subadmin') {
+      result = await pool.query(
+        "SELECT id, username, role, active, created_at FROM users WHERE subadmin_id = $1 AND role = 'scanner' ORDER BY created_at DESC",
+        [req.user.id]
+      );
+    } else {
+      result = await pool.query(
+        "SELECT id, username, role, active, subadmin_id, created_at FROM users WHERE role != 'superadmin' ORDER BY created_at DESC"
+      );
+    }
     res.json(result.rows);
   } catch (error) {
     console.error('Get scanners error:', error);
@@ -84,6 +109,13 @@ router.delete('/scanners/:id', authMiddleware, adminOnly, async (req, res) => {
 
     if (parseInt(id) === req.user.id) {
       return res.status(400).json({ error: 'Cannot delete yourself' });
+    }
+
+    if (req.user.role === 'subadmin') {
+      const check = await pool.query('SELECT id FROM users WHERE id = $1 AND subadmin_id = $2', [id, req.user.id]);
+      if (check.rows.length === 0) {
+        return res.status(404).json({ error: 'Scanner not found' });
+      }
     }
 
     await pool.query('DELETE FROM users WHERE id = $1', [id]);

@@ -15,7 +15,13 @@ export default function Login() {
     setLoading(true);
     try {
       const user = await login(username, password);
-      navigate(user.role === 'admin' ? '/' : '/scanner');
+      if (user.role === 'superadmin') {
+        navigate('/super-admin');
+      } else if (user.role === 'subadmin') {
+        navigate('/');
+      } else {
+        navigate('/scanner');
+      }
     } catch (error) {
       console.error(error.message);
     } finally {

@@ -1,14 +1,14 @@
 const express = require('express');
 const { pool } = require('../db');
-const { authMiddleware, adminOnly } = require('../middleware/auth');
+const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 
-async function logActivity(userId, username, action, guestName, details) {
+async function logActivity(subadminId, userId, username, action, guestName, details) {
   try {
     await pool.query(
-      'INSERT INTO activity_log (user_id, username, action, guest_name, details) VALUES ($1, $2, $3, $4, $5)',
-      [userId, username, action, guestName, details]
+      'INSERT INTO activity_log (user_id, username, action, guest_name, details, subadmin_id) VALUES ($1, $2, $3, $4, $5, $6)',
+      [userId, username, action, guestName, details, subadminId]
     );
   } catch (error) {
     console.error('Log activity error:', error);
@@ -27,6 +27,7 @@ router.post('/', authMiddleware, async (req, res) => {
 
     if (cardResult.rows.length === 0) {
       const io = req.app.get('io');
+      const subadminId = req.user.subadmin_id || null;
       const activityData = {
         id: Date.now(),
         username: req.user.username,
@@ -36,7 +37,7 @@ router.post('/', authMiddleware, async (req, res) => {
         created_at: new Date().toISOString()
       };
       if (io) io.emit('activity', activityData);
-      await logActivity(req.user.id, req.user.username, 'scan_failed', null, 'Unknown QR code scanned');
+      await logActivity(subadminId, req.user.id, req.user.username, 'scan_failed', null, 'Unknown QR code scanned');
 
       return res.status(404).json({ error: 'Card not found', status: 'not_found' });
     }
@@ -45,6 +46,7 @@ router.post('/', authMiddleware, async (req, res) => {
 
     if (card.scanned) {
       const io = req.app.get('io');
+      const subadminId = req.user.subadmin_id || null;
       const activityData = {
         id: Date.now(),
         username: req.user.username,
@@ -54,7 +56,7 @@ router.post('/', authMiddleware, async (req, res) => {
         created_at: new Date().toISOString()
       };
       if (io) io.emit('activity', activityData);
-      await logActivity(req.user.id, req.user.username, 'scan_duplicate', card.guest_name, `Duplicate scan attempt for ${card.guest_name}`);
+      await logActivity(subadminId, req.user.id, req.user.username, 'scan_duplicate', card.guest_name, `Duplicate scan attempt for ${card.guest_name}`);
 
       return res.status(400).json({
         error: 'Card already scanned',
@@ -83,6 +85,7 @@ router.post('/', authMiddleware, async (req, res) => {
       io.emit('stats_updated');
     }
 
+    const subadminId = req.user.subadmin_id || null;
     const activityData = {
       id: Date.now(),
       username: req.user.username,
@@ -92,7 +95,7 @@ router.post('/', authMiddleware, async (req, res) => {
       created_at: new Date().toISOString()
     };
     if (io) io.emit('activity', activityData);
-    await logActivity(req.user.id, req.user.username, 'check_in', card.guest_name, `${card.guest_name} checked in`);
+    await logActivity(subadminId, req.user.id, req.user.username, 'check_in', card.guest_name, `${card.guest_name} checked in`);
 
     res.json(scanData);
   } catch (error) {
@@ -103,21 +106,36 @@ router.post('/', authMiddleware, async (req, res) => {
 
 router.get('/stats', authMiddleware, async (req, res) => {
   try {
-    const totalResult = await pool.query('SELECT COUNT(*) FROM cards');
-    const scannedResult = await pool.query('SELECT COUNT(*) FROM cards WHERE scanned = true');
+    let totalResult, scannedResult, recentScans;
+
+    if (req.user.role === 'superadmin') {
+      totalResult = await pool.query('SELECT COUNT(*) FROM cards');
+      scannedResult = await pool.query('SELECT COUNT(*) FROM cards WHERE scanned = true');
+      recentScans = await pool.query(`
+        SELECT c.guest_name, c.scanned_at, u.username as scanned_by
+        FROM cards c
+        LEFT JOIN users u ON c.scanned_by = u.id
+        WHERE c.scanned = true
+        ORDER BY c.scanned_at DESC
+        LIMIT 10
+      `);
+    } else {
+      const subadminId = req.user.subadmin_id || req.user.id;
+      totalResult = await pool.query('SELECT COUNT(*) FROM cards WHERE subadmin_id = $1', [subadminId]);
+      scannedResult = await pool.query('SELECT COUNT(*) FROM cards WHERE scanned = true AND subadmin_id = $1', [subadminId]);
+      recentScans = await pool.query(`
+        SELECT c.guest_name, c.scanned_at, u.username as scanned_by
+        FROM cards c
+        LEFT JOIN users u ON c.scanned_by = u.id
+        WHERE c.scanned = true AND c.subadmin_id = $1
+        ORDER BY c.scanned_at DESC
+        LIMIT 10
+      `, [subadminId]);
+    }
 
     const total = parseInt(totalResult.rows[0].count);
     const scanned = parseInt(scannedResult.rows[0].count);
     const pending = total - scanned;
-
-    const recentScans = await pool.query(`
-      SELECT c.guest_name, c.scanned_at, u.username as scanned_by
-      FROM cards c
-      LEFT JOIN users u ON c.scanned_by = u.id
-      WHERE c.scanned = true
-      ORDER BY c.scanned_at DESC
-      LIMIT 10
-    `);
 
     res.json({
       total,
@@ -135,10 +153,17 @@ router.get('/stats', authMiddleware, async (req, res) => {
 router.get('/activity', authMiddleware, async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 50;
-    const result = await pool.query(
-      'SELECT * FROM activity_log ORDER BY created_at DESC LIMIT $1',
-      [limit]
-    );
+    let result;
+
+    if (req.user.role === 'superadmin') {
+      result = await pool.query('SELECT * FROM activity_log ORDER BY created_at DESC LIMIT $1', [limit]);
+    } else {
+      const subadminId = req.user.subadmin_id || req.user.id;
+      result = await pool.query(
+        'SELECT * FROM activity_log WHERE subadmin_id = $1 ORDER BY created_at DESC LIMIT $2',
+        [subadminId, limit]
+      );
+    }
     res.json(result.rows);
   } catch (error) {
     console.error('Get activity error:', error);

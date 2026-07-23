@@ -13,11 +13,14 @@ async function initDB() {
         username VARCHAR(255) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
         role VARCHAR(20) NOT NULL DEFAULT 'scanner',
+        subadmin_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        active BOOLEAN DEFAULT TRUE,
         created_at TIMESTAMP DEFAULT NOW()
       );
 
       CREATE TABLE IF NOT EXISTS settings (
         id SERIAL PRIMARY KEY,
+        subadmin_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
         logo_url TEXT,
         event_name VARCHAR(255) DEFAULT 'Graduation Party',
         event_subtitle VARCHAR(255) DEFAULT '',
@@ -26,7 +29,8 @@ async function initDB() {
         event_location_line1 VARCHAR(255) DEFAULT '',
         event_location_line2 VARCHAR(255) DEFAULT '',
         org_logo_text VARCHAR(50) DEFAULT '',
-        created_at TIMESTAMP DEFAULT NOW()
+        created_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(subadmin_id)
       );
 
       CREATE TABLE IF NOT EXISTS cards (
@@ -36,6 +40,7 @@ async function initDB() {
         scanned BOOLEAN DEFAULT FALSE,
         scanned_at TIMESTAMP,
         scanned_by INTEGER REFERENCES users(id),
+        subadmin_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
         created_at TIMESTAMP DEFAULT NOW()
       );
 
@@ -46,33 +51,70 @@ async function initDB() {
         action VARCHAR(50) NOT NULL,
         guest_name VARCHAR(255),
         details TEXT,
+        subadmin_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
         created_at TIMESTAMP DEFAULT NOW()
       );
     `);
 
-    // Insert default settings if not exist
-    const settingsExist = await client.query('SELECT COUNT(*) FROM settings');
-    if (parseInt(settingsExist.rows[0].count) === 0) {
-      await client.query("INSERT INTO settings (event_name) VALUES ('Graduation Party')");
-    }
+    // Add subadmin_id column to users if not exists
+    await client.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='subadmin_id') THEN
+          ALTER TABLE users ADD COLUMN subadmin_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
+        END IF;
+      END $$;
+    `);
 
-    // Add new settings columns if they don't exist (migration for existing DBs)
-    const newCols = [
-      ['event_subtitle', "ALTER TABLE settings ADD COLUMN IF NOT EXISTS event_subtitle VARCHAR(255) DEFAULT ''"],
-      ['event_date', "ALTER TABLE settings ADD COLUMN IF NOT EXISTS event_date VARCHAR(100) DEFAULT ''"],
-      ['event_time', "ALTER TABLE settings ADD COLUMN IF NOT EXISTS event_time VARCHAR(100) DEFAULT ''"],
-      ['event_location_line1', "ALTER TABLE settings ADD COLUMN IF NOT EXISTS event_location_line1 VARCHAR(255) DEFAULT ''"],
-      ['event_location_line2', "ALTER TABLE settings ADD COLUMN IF NOT EXISTS event_location_line2 VARCHAR(255) DEFAULT ''"],
-      ['org_logo_text', "ALTER TABLE settings ADD COLUMN IF NOT EXISTS org_logo_text VARCHAR(50) DEFAULT ''"],
-    ];
-    for (const [, sql] of newCols) {
-      await client.query(sql);
-    }
+    // Add active column to users if not exists
+    await client.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='active') THEN
+          ALTER TABLE users ADD COLUMN active BOOLEAN DEFAULT TRUE;
+        END IF;
+      END $$;
+    `);
+
+    // Add subadmin_id to settings if not exists
+    await client.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='settings' AND column_name='subadmin_id') THEN
+          ALTER TABLE settings ADD COLUMN subadmin_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
+        END IF;
+      END $$;
+    `);
+
+    // Add unique constraint on subadmin_id for settings if not exists
+    await client.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint WHERE conname = 'settings_subadmin_id_key'
+        ) THEN
+          ALTER TABLE settings ADD CONSTRAINT settings_subadmin_id_key UNIQUE (subadmin_id);
+        END IF;
+      END $$;
+    `);
+
+    // Add subadmin_id to cards if not exists
+    await client.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='cards' AND column_name='subadmin_id') THEN
+          ALTER TABLE cards ADD COLUMN subadmin_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
+        END IF;
+      END $$;
+    `);
+
+    // Add subadmin_id to activity_log if not exists
+    await client.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='activity_log' AND column_name='subadmin_id') THEN
+          ALTER TABLE activity_log ADD COLUMN subadmin_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
+        END IF;
+      END $$;
+    `);
 
     // Fix foreign key constraints to allow user deletion
     await client.query(`
-      DO $$
-      BEGIN
+      DO $$ BEGIN
         IF EXISTS (
           SELECT 1 FROM information_schema.table_constraints
           WHERE constraint_name = 'activity_log_user_id_fkey'

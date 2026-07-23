@@ -10,11 +10,12 @@ import {
   LogOut,
   GraduationCap,
   User,
-  ScanLine
+  ScanLine,
+  Shield
 } from 'lucide-react';
 
 export default function Layout() {
-  const { logout, user } = useAuth();
+  const { logout, user, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -22,12 +23,42 @@ export default function Layout() {
     navigate('/login');
   };
 
+  const navItems = isSuperAdmin ? (
+    <>
+      <li><NavLink to="/super-admin" end><Shield size={18} /> Sub-Admins</NavLink></li>
+    </>
+  ) : (
+    <>
+      <li><NavLink to="/" end><LayoutDashboard size={18} /> Dashboard</NavLink></li>
+      <li><NavLink to="/activity"><Activity size={18} /> Activity</NavLink></li>
+      <li><NavLink to="/cards"><CreditCard size={18} /> Cards</NavLink></li>
+      <li><NavLink to="/cards/generate"><PlusCircle size={18} /> Generate Cards</NavLink></li>
+      <li><NavLink to="/users"><Users size={18} /> Users</NavLink></li>
+      <li><NavLink to="/settings"><Settings size={18} /> Settings</NavLink></li>
+    </>
+  );
+
+  const mobileNavItems = isSuperAdmin ? (
+    <NavLink to="/super-admin" end><Shield size={18} /> Sub-Admins</NavLink>
+  ) : (
+    <>
+      <NavLink to="/" end><LayoutDashboard size={18} /> Home</NavLink>
+      <NavLink to="/activity"><Activity size={18} /> Activity</NavLink>
+      <NavLink to="/cards/generate"><PlusCircle size={18} /> Generate</NavLink>
+      <NavLink to="/cards"><CreditCard size={18} /> Cards</NavLink>
+      <NavLink to="/users"><Users size={18} /> Users</NavLink>
+      <NavLink to="/settings"><Settings size={18} /> More</NavLink>
+    </>
+  );
+
   return (
     <div className="layout">
       <div className="mobile-topbar">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <GraduationCap size={20} style={{ color: 'var(--primary)' }} />
-          <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>Grad Check-in</span>
+          <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>
+            {isSuperAdmin ? 'Super Admin' : 'Grad Check-in'}
+          </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <div style={{
@@ -51,22 +82,17 @@ export default function Layout() {
       <aside className="sidebar">
         <div className="sidebar-brand">
           <div className="brand-icon">
-            <GraduationCap size={22} />
+            {isSuperAdmin ? <Shield size={22} /> : <GraduationCap size={22} />}
           </div>
           <div>
-            <h2>Grad Check-in</h2>
-            <span>Party Management</span>
+            <h2>{isSuperAdmin ? 'Super Admin' : 'Grad Check-in'}</h2>
+            <span>{isSuperAdmin ? 'System Management' : 'Party Management'}</span>
           </div>
         </div>
 
         <nav>
           <ul className="sidebar-nav">
-            <li><NavLink to="/" end><LayoutDashboard size={18} /> Dashboard</NavLink></li>
-            <li><NavLink to="/activity"><Activity size={18} /> Activity</NavLink></li>
-            <li><NavLink to="/cards"><CreditCard size={18} /> Cards</NavLink></li>
-            <li><NavLink to="/cards/generate"><PlusCircle size={18} /> Generate Cards</NavLink></li>
-            <li><NavLink to="/users"><Users size={18} /> Users</NavLink></li>
-            <li><NavLink to="/settings"><Settings size={18} /> Settings</NavLink></li>
+            {navItems}
           </ul>
         </nav>
 
@@ -89,12 +115,7 @@ export default function Layout() {
       </main>
 
       <nav className="mobile-bottom-nav">
-        <NavLink to="/" end><LayoutDashboard size={18} /> Home</NavLink>
-        <NavLink to="/activity"><Activity size={18} /> Activity</NavLink>
-        <NavLink to="/cards/generate"><PlusCircle size={18} /> Generate</NavLink>
-        <NavLink to="/cards"><CreditCard size={18} /> Cards</NavLink>
-        <NavLink to="/users"><Users size={18} /> Users</NavLink>
-        <NavLink to="/settings"><Settings size={18} /> More</NavLink>
+        {mobileNavItems}
       </nav>
     </div>
   );

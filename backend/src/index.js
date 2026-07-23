@@ -10,6 +10,7 @@ const { pool, initDB } = require('./db');
 const authRoutes = require('./routes/auth');
 const cardsRoutes = require('./routes/cards');
 const scanRoutes = require('./routes/scan');
+const superadminRoutes = require('./routes/superadmin');
 
 const app = express();
 const server = http.createServer(app);
@@ -65,6 +66,7 @@ app.set('io', io);
 app.use('/api/auth', authRoutes);
 app.use('/api/cards', cardsRoutes);
 app.use('/api/scan', scanRoutes);
+app.use('/api/superadmin', superadminRoutes);
 
 app.get('/api/scan/scanners-status', (req, res) => {
   const scanners = [];
@@ -81,6 +83,7 @@ io.on('connection', (socket) => {
     connectedScanners.set(socket.id, {
       username: data.username,
       userId: data.userId,
+      subadminId: data.subadminId || null,
       connectedAt: new Date().toISOString()
     });
     console.log(`Scanner online: ${data.username}`);
@@ -113,25 +116,25 @@ io.on('connection', (socket) => {
 
 async function seedAdmin() {
   try {
-    const adminUsername = process.env.ADMIN_USERNAME || 'admin';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    const superadminUsername = process.env.SUPERADMIN_USERNAME || 'superadmin';
+    const superadminPassword = process.env.SUPERADMIN_PASSWORD || 'admin123';
 
-    const existingAdmin = await pool.query('SELECT id FROM users WHERE username = $1', [adminUsername]);
+    const existing = await pool.query("SELECT id FROM users WHERE username = $1 AND role = 'superadmin'", [superadminUsername]);
 
-    if (existingAdmin.rows.length === 0) {
+    if (existing.rows.length === 0) {
       const salt = await bcrypt.genSalt(10);
-      const passwordHash = await bcrypt.hash(adminPassword, salt);
+      const passwordHash = await bcrypt.hash(superadminPassword, salt);
 
       await pool.query(
-        'INSERT INTO users (username, password_hash, role) VALUES ($1, $2, $3)',
-        [adminUsername, passwordHash, 'admin']
+        "INSERT INTO users (username, password_hash, role) VALUES ($1, $2, 'superadmin') ON CONFLICT (username) DO NOTHING",
+        [superadminUsername, passwordHash]
       );
-      console.log(`Default admin user created: ${adminUsername}`);
+      console.log(`Default super admin created: ${superadminUsername}`);
     } else {
-      console.log('Admin user already exists');
+      console.log('Super admin already exists');
     }
   } catch (error) {
-    console.error('Seed admin error:', error);
+    console.error('Seed super admin error:', error);
   }
 }
 

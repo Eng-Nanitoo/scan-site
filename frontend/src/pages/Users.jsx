@@ -25,8 +25,8 @@ export default function Users() {
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('scanner');
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const isSuperAdmin = user?.role === 'superadmin';
 
   useEffect(() => { fetchUsers(); }, []);
 
@@ -48,10 +48,10 @@ export default function Users() {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ username, password, role })
+        body: JSON.stringify({ username, password, role: 'scanner' })
       });
       if (!res.ok) { const err = await res.json(); throw new Error(err.error); }
-      setUsername(''); setPassword(''); setRole('scanner');
+      setUsername(''); setPassword('');
       fetchUsers();
     } catch (error) { console.error(error.message); }
   };
@@ -67,6 +67,17 @@ export default function Users() {
     } catch (error) { console.error(error.message); }
   };
 
+  if (isSuperAdmin) {
+    return (
+      <div>
+        <div className="page-header">
+          <h1>Manage Users</h1>
+          <p>Super admin cannot create scanners directly. Sub-admins manage their own scanners.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="page-header">
@@ -77,12 +88,8 @@ export default function Users() {
       <form className="add-user-form" onSubmit={addUser}>
         <input type="text" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
         <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        <select value={role} onChange={(e) => setRole(e.target.value)}>
-          <option value="scanner">Scanner</option>
-          <option value="admin">Admin</option>
-        </select>
         <button type="submit" className="btn btn-primary btn-sm">
-          <UserPlus size={14} /> Add User
+          <UserPlus size={14} /> Add Scanner
         </button>
       </form>
 
@@ -103,18 +110,18 @@ export default function Users() {
                 <UserSkeleton />
                 <UserSkeleton />
               </>
-            ) : users.map(user => (
-              <tr key={user.id}>
-                <td style={{ fontWeight: 500 }}>{user.username}</td>
+            ) : users.map(u => (
+              <tr key={u.id}>
+                <td style={{ fontWeight: 500 }}>{u.username}</td>
                 <td>
-                  <span className={`role-badge ${user.role}`}>
-                    {user.role === 'admin' ? <Crown size={12} /> : <ScanLine size={12} />}
-                    {user.role}
+                  <span className={`role-badge ${u.role}`}>
+                    {u.role === 'admin' ? <Crown size={12} /> : <ScanLine size={12} />}
+                    {u.role}
                   </span>
                 </td>
-                <td style={{ color: 'var(--text-muted)' }}>{new Date(user.created_at).toLocaleDateString()}</td>
+                <td style={{ color: 'var(--text-muted)' }}>{new Date(u.created_at).toLocaleDateString()}</td>
                 <td>
-                  <button className="btn btn-danger btn-sm" onClick={() => deleteUser(user.id)}>
+                  <button className="btn btn-danger btn-sm" onClick={() => deleteUser(u.id)}>
                     <Trash2 size={14} />
                   </button>
                 </td>

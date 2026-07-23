@@ -8,12 +8,13 @@ import Cards from './pages/Cards';
 import GenerateCards from './pages/GenerateCards';
 import Users from './pages/Users';
 import Settings from './pages/Settings';
+import SuperAdmin from './pages/SuperAdmin';
 import TicketDemo from './pages/TicketDemo';
 import Layout from './components/Layout';
 
 const Scanner = lazy(() => import('./pages/Scanner'));
 
-function ProtectedRoute({ children, adminOnly = false }) {
+function ProtectedRoute({ children, adminOnly = false, superAdminOnly = false }) {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -24,7 +25,11 @@ function ProtectedRoute({ children, adminOnly = false }) {
     return <Navigate to="/login" />;
   }
 
-  if (adminOnly && user.role !== 'admin') {
+  if (superAdminOnly && user.role !== 'superadmin') {
+    return <Navigate to={user.role === 'scanner' ? '/scanner' : '/'} />;
+  }
+
+  if (adminOnly && user.role !== 'superadmin' && user.role !== 'subadmin') {
     return <Navigate to="/scanner" />;
   }
 
@@ -41,8 +46,19 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={
-        user ? <Navigate to={user.role === 'admin' ? '/' : '/scanner'} /> : <Login />
+        user ? <Navigate to={
+          user.role === 'superadmin' ? '/super-admin' :
+          user.role === 'subadmin' ? '/' : '/scanner'
+        } /> : <Login />
       } />
+
+      <Route path="/super-admin" element={
+        <ProtectedRoute superAdminOnly>
+          <Layout />
+        </ProtectedRoute>
+      }>
+        <Route index element={<SuperAdmin />} />
+      </Route>
 
       <Route path="/" element={
         <ProtectedRoute adminOnly>

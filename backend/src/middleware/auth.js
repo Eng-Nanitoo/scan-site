@@ -17,10 +17,17 @@ function authMiddleware(req, res, next) {
 }
 
 function adminOnly(req, res, next) {
-  if (req.user.role !== 'admin') {
+  if (req.user.role !== 'superadmin' && req.user.role !== 'subadmin') {
     return res.status(403).json({ error: 'Admin access required' });
   }
   next();
 }
 
-module.exports = { authMiddleware, adminOnly };
+function superAdminOnly(req, res, next) {
+  if (req.user.role !== 'superadmin') {
+    return res.status(403).json({ error: 'Super admin access required' });
+  }
+  next();
+}
+
+module.exports = { authMiddleware, adminOnly, superAdminOnly };
