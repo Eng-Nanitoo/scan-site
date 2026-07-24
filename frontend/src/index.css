@@ -1269,6 +1269,11 @@ textarea::placeholder {
   flex-direction: row-reverse;
 }
 
+[dir="rtl"] .section-header h3 {
+  margin-left: 0;
+  margin-right: 0.5rem;
+}
+
 [dir="rtl"] .activity-header-row h3 {
   margin-left: 0;
   margin-right: auto;
@@ -1289,4 +1294,193 @@ textarea::placeholder {
 
 [dir="rtl"] input, [dir="rtl"] select, [dir="rtl"] textarea {
   text-align: right;
+}
+
+[dir="rtl"] .mobile-topbar {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .mobile-topbar > div:last-child {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .mobile-bottom-nav {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .sidebar-nav li a {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .sidebar-footer > div:first-child {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .sidebar-footer > div:first-child > div:last-child {
+  text-align: right;
+}
+
+[dir="rtl"] .sidebar-footer > div:first-child > div:last-child > div:first-child {
+  text-align: right;
+}
+
+[dir="rtl"] .sidebar-footer > button {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .stat-card {
+  text-align: right;
+}
+
+[dir="rtl"] .stat-header {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .dashboard-columns {
+  direction: rtl;
+}
+
+[dir="rtl"] .empty-state {
+  text-align: center;
+}
+
+[dir="rtl"] .empty-icon {
+  margin: 0 auto 0.5rem;
+}
+
+[dir="rtl"] table th,
+[dir="rtl"] table td {
+  text-align: right;
+}
+
+[dir="rtl"] thead tr {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .activity-item {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .activity-content {
+  text-align: right;
+}
+
+[dir="rtl"] .activity-time {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .recent-scans {
+  direction: rtl;
+}
+
+[dir="rtl"] .users-table {
+  direction: rtl;
+}
+
+[dir="rtl"] .scanner-controls {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .scanner-header {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .scanner-status-bar {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .card-actions {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .card-item {
+  direction: rtl;
+}
+
+[dir="rtl"] .card-item .guest-name {
+  text-align: right;
+}
+
+[dir="rtl"] .card-item .card-status {
+  text-align: right;
+}
+
+[dir="rtl"] .settings-section {
+  direction: rtl;
+}
+
+[dir="rtl"] .form-group label {
+  text-align: right;
+}
+
+[dir="rtl"] .auth-card {
+  direction: rtl;
+}
+
+[dir="rtl"] .auth-card h1,
+[dir="rtl"] .auth-card .subtitle {
+  text-align: center;
+}
+
+[dir="rtl"] .btn {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .role-badge {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .live-dot {
+  margin-left: 0;
+  margin-right: 0.35rem;
+}
+
+[dir="rtl"] .section-icon {
+  margin-left: 0;
+  margin-right: 0.5rem;
+}
+
+[dir="rtl"] .scanner-card {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .scanner-info {
+  text-align: right;
+}
+
+[dir="rtl"] .modal-overlay .modal-content {
+  direction: rtl;
+}
+
+[dir="rtl"] .modal-content h2 {
+  text-align: center;
+}
+
+[dir="rtl"] .modal-content p {
+  text-align: center;
+}
+
+[dir="rtl"] .qr-box {
+  direction: rtl;
+}
+
+[dir="rtl"] .manual-input {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .generate-preview {
+  direction: rtl;
+}
+
+[dir="rtl"] .generate-preview h3 {
+  text-align: right;
+}
+
+[dir="rtl"] .ticket-preview-wrapper {
+  direction: rtl;
+}
+
+[dir="rtl"] .empty-icon {
+  display: flex;
+  justify-content: center;
 }
