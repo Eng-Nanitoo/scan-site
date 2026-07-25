@@ -39,7 +39,7 @@ export default function Layout() {
     <>
       <li><NavLink to="/" end><LayoutDashboard size={18} /> {t('dashboard')}</NavLink></li>
       <li><NavLink to="/activity"><Activity size={18} /> {t('liveActivity')}</NavLink></li>
-      <li><NavLink to="/cards"><CreditCard size={18} /> {t('cards')}</NavLink></li>
+      <li><NavLink to="/cards" end><CreditCard size={18} /> {t('cards')}</NavLink></li>
       <li><NavLink to="/cards/generate"><PlusCircle size={18} /> {t('generateCards')}</NavLink></li>
       <li><NavLink to="/users"><Users size={18} /> {t('manageUsers')}</NavLink></li>
       <li><NavLink to="/settings"><Settings size={18} /> {t('settings')}</NavLink></li>
@@ -53,7 +53,7 @@ export default function Layout() {
       <NavLink to="/" end><LayoutDashboard size={18} /> {t('dashboard')}</NavLink>
       <NavLink to="/activity"><Activity size={18} /> {t('liveActivity')}</NavLink>
       <NavLink to="/cards/generate"><PlusCircle size={18} /> {t('generate')}</NavLink>
-      <NavLink to="/cards"><CreditCard size={18} /> {t('cards')}</NavLink>
+      <NavLink to="/cards" end><CreditCard size={18} /> {t('cards')}</NavLink>
       <NavLink to="/users"><Users size={18} /> {t('manageUsers')}</NavLink>
       <NavLink to="/settings"><Settings size={18} /> {t('settings')}</NavLink>
     </>
