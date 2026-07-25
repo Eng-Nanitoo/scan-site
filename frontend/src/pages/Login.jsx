@@ -2,16 +2,22 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n/I18nContext';
-import { GraduationCap, Loader2 } from 'lucide-react';
+import { GraduationCap, Loader2, Eye, EyeOff, Globe } from 'lucide-react';
 
 export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { login } = useAuth();
-  const { t } = useI18n();
+  const { t, lang, setLang } = useI18n();
   const navigate = useNavigate();
+
+  const toggleLang = () => {
+    const next = lang === 'en' ? 'fr' : lang === 'fr' ? 'ar' : 'en';
+    setLang(next);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,6 +42,17 @@ export default function Login() {
   return (
     <div className="auth-container">
       <div className="auth-card">
+        <div style={{ position: 'absolute', top: 16, right: 16 }}>
+          <button onClick={toggleLang} style={{
+            background: 'transparent', border: '1px solid var(--border)',
+            borderRadius: 8, height: 32, padding: '0 8px', display: 'flex',
+            alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)',
+            cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, gap: 4
+          }}>
+            <Globe size={14} /> {lang === 'en' ? 'FR' : lang === 'fr' ? 'عربي' : 'EN'}
+          </button>
+        </div>
+
         <div className="auth-icon">
           <GraduationCap size={28} />
         </div>
@@ -59,14 +76,28 @@ export default function Login() {
 
           <div className="form-group">
             <label htmlFor="password">{t('password')}</label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              placeholder={t('enterPassword')}
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder={t('enterPassword')}
+                style={{ paddingRight: 40 }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                  background: 'transparent', border: 'none', cursor: 'pointer',
+                  color: 'var(--text-muted)', padding: 4, display: 'flex'
+                }}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
 
           <button type="submit" className="btn btn-primary" disabled={loading}>

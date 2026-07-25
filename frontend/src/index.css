@@ -60,6 +60,7 @@ body {
   box-shadow: var(--shadow);
   width: 100%;
   max-width: 420px;
+  position: relative;
 }
 
 .auth-card .auth-icon {
