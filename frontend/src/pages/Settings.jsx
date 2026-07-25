@@ -2,11 +2,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n/I18nContext';
 import {
-  Upload,
-  Image,
   Type,
   Save,
-  Loader2,
   Calendar,
   Clock,
   MapPin,
@@ -32,10 +29,7 @@ export default function Settings() {
     event_name: '', event_subtitle: '', event_date: '', event_time: '',
     event_location_line1: '', event_location_line2: '', org_logo_text: '',
   });
-  const [logoFile, setLogoFile] = useState(null);
-  const [logoPreview, setLogoPreview] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
   const { token } = useAuth();
 
   useEffect(() => { fetchSettings(); }, []);
@@ -54,35 +48,12 @@ export default function Settings() {
         event_location_line2: data.event_location_line2 || '',
         org_logo_text: data.org_logo_text || '',
       });
-      if (data.logo_url) setLogoPreview(data.logo_url);
     } catch (error) { console.error('Failed to fetch settings:', error); }
     finally { setLoading(false); }
   };
 
   const handleChange = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleLogoChange = (e) => {
-    const file = e.target.files[0];
-    if (file) { setLogoFile(file); setLogoPreview(URL.createObjectURL(file)); }
-  };
-
-  const uploadLogo = async () => {
-    if (!logoFile) return;
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('logo', logoFile);
-      const res = await fetch('/api/cards/logo', {
-        method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData
-      });
-      if (!res.ok) throw new Error('Upload failed');
-      const data = await res.json();
-      setSettings(prev => ({ ...prev, logo_url: data.logoUrl }));
-      setLogoFile(null);
-    } catch (error) { console.error('Failed to upload logo'); }
-    finally { setUploading(false); }
   };
 
   const saveSettings = async () => {
@@ -105,7 +76,6 @@ export default function Settings() {
           <p>{t('settingsDesc')}</p>
         </div>
         <div className="settings-card">
-          <div className="skeleton" style={{ width: 160, height: 100, borderRadius: 'var(--radius)', marginBottom: '1.5rem' }} />
           <div className="skeleton" style={{ width: '100%', height: 44, borderRadius: 'var(--radius)', marginBottom: '1rem' }} />
           <div className="skeleton" style={{ width: '100%', height: 44, borderRadius: 'var(--radius)', marginBottom: '1rem' }} />
           <div className="skeleton" style={{ width: '100%', height: 44, borderRadius: 'var(--radius)' }} />
@@ -122,31 +92,7 @@ export default function Settings() {
       </div>
 
       <div className="settings-card">
-        {/* Logo */}
         <div className="section-header">
-          <div className="section-icon"><Image size={18} /></div>
-          <h3>{t('eventLogo')}</h3>
-        </div>
-        <div className="settings-logo-row" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1.5rem' }}>
-          <div className="logo-preview">
-            {logoPreview ? <img src={logoPreview} alt={t('logoAlt')} /> : <Image size={28} style={{ color: 'var(--text-dim)' }} />}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <label className="btn btn-secondary" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Upload size={16} /> {t('chooseLogo')}
-              <input type="file" accept="image/*" onChange={handleLogoChange}
-                style={{ position: 'absolute', width: 0, height: 0, opacity: 0, overflow: 'hidden' }} />
-            </label>
-            {logoFile && (
-              <button className="btn btn-primary" onClick={uploadLogo} disabled={uploading}>
-                {uploading ? <><Loader2 size={16} className="spin" /> {t('uploading')}</> : <><Upload size={16} /> {t('upload')}</>}
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Event Details */}
-        <div className="section-header" style={{ marginTop: '1.5rem' }}>
           <div className="section-icon"><Type size={18} /></div>
           <h3>{t('eventDetails')}</h3>
         </div>
