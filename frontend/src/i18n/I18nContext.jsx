@@ -8,7 +8,7 @@ const translations = { en, fr, ar };
 const I18nContext = createContext(null);
 
 export function I18nProvider({ children }) {
-  const [lang, setLang] = useState(() => localStorage.getItem('lang') || 'en');
+  const [lang, setLang] = useState(() => localStorage.getItem('lang') || 'fr');
 
   useEffect(() => {
     localStorage.setItem('lang', lang);

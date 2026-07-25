@@ -15,8 +15,7 @@ export default function Login() {
   const navigate = useNavigate();
 
   const toggleLang = () => {
-    const next = lang === 'en' ? 'fr' : lang === 'fr' ? 'ar' : 'en';
-    setLang(next);
+    setLang(lang === 'fr' ? 'ar' : 'fr');
   };
 
   const handleSubmit = async (e) => {
@@ -58,7 +57,7 @@ export default function Login() {
             alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)',
             cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, gap: 4
           }}>
-            <Globe size={14} /> {lang === 'en' ? 'FR' : lang === 'fr' ? 'عربي' : 'EN'}
+            <Globe size={14} /> {lang === 'fr' ? 'عربي' : 'Francais'}
           </button>
         </div>
 

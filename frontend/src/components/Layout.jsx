@@ -26,11 +26,10 @@ export default function Layout() {
   };
 
   const toggleLang = () => {
-    const next = lang === 'en' ? 'fr' : lang === 'fr' ? 'ar' : 'en';
-    setLang(next);
+    setLang(lang === 'fr' ? 'ar' : 'fr');
   };
 
-  const langLabel = lang === 'en' ? 'FR' : lang === 'fr' ? 'عربي' : 'EN';
+  const langLabel = lang === 'fr' ? 'عربي' : 'Francais';
 
   const navItems = isSuperAdmin ? (
     <>
@@ -115,7 +114,7 @@ export default function Layout() {
 
         <div style={{ padding: '0 1rem', marginBottom: '0.5rem' }}>
           <button onClick={toggleLang} className="btn btn-secondary btn-sm" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
-            <Globe size={14} /> {lang === 'en' ? 'Francais' : lang === 'fr' ? 'العربية' : 'English'}
+            <Globe size={14} /> {lang === 'fr' ? 'العربية' : 'Francais'}
           </button>
         </div>
 
