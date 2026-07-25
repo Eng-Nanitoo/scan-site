@@ -1,8 +1,18 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const { pool } = require('../db');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
+
+const scanLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 25,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many scan requests. Please slow down.', status: 'rate_limited' },
+  keyGenerator: (req) => req.user?.id || req.ip,
+});
 
 function getRoom(subadminId) {
   return `subadmin:${subadminId}`;
@@ -19,7 +29,7 @@ async function logActivity(subadminId, userId, username, action, guestName, deta
   }
 }
 
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', authMiddleware, scanLimiter, async (req, res) => {
   try {
     const { unique_key } = req.body;
 
@@ -30,12 +40,50 @@ router.post('/', authMiddleware, async (req, res) => {
     const io = req.app.get('io');
     const subadminId = req.user.subadmin_id || req.user.id;
 
-    const cardResult = await pool.query(
+    const updateResult = await pool.query(
+      `UPDATE cards
+       SET scanned = true, scanned_at = NOW(), scanned_by = $1
+       WHERE unique_key = $2 AND subadmin_id = $3 AND scanned = false
+       RETURNING *`,
+      [req.user.id, unique_key, subadminId]
+    );
+
+    if (updateResult.rowCount === 1) {
+      const card = updateResult.rows[0];
+
+      const scanData = {
+        message: 'Check-in successful',
+        status: 'success',
+        guest_name: card.guest_name,
+        scanned_at: new Date().toISOString(),
+        scanned_by: req.user.username
+      };
+
+      if (io && subadminId) {
+        io.to(getRoom(subadminId)).emit('guest_checked_in', scanData);
+        io.to(getRoom(subadminId)).emit('stats_updated');
+      }
+
+      const activityData = {
+        id: Date.now(),
+        username: req.user.username,
+        action: 'check_in',
+        guest_name: card.guest_name,
+        details: `${card.guest_name} checked in`,
+        created_at: new Date().toISOString()
+      };
+      if (io && subadminId) io.to(getRoom(subadminId)).emit('activity', activityData);
+      await logActivity(subadminId, req.user.id, req.user.username, 'check_in', card.guest_name, `${card.guest_name} checked in`);
+
+      return res.json(scanData);
+    }
+
+    const existingCard = await pool.query(
       'SELECT * FROM cards WHERE unique_key = $1 AND subadmin_id = $2',
       [unique_key, subadminId]
     );
 
-    if (cardResult.rows.length === 0) {
+    if (existingCard.rows.length === 0) {
       const activityData = {
         id: Date.now(),
         username: req.user.username,
@@ -50,58 +98,25 @@ router.post('/', authMiddleware, async (req, res) => {
       return res.status(404).json({ error: 'Card not found', status: 'not_found' });
     }
 
-    const card = cardResult.rows[0];
-
-    if (card.scanned) {
-      const activityData = {
-        id: Date.now(),
-        username: req.user.username,
-        action: 'scan_duplicate',
-        guest_name: card.guest_name,
-        details: `Duplicate scan attempt for ${card.guest_name}`,
-        created_at: new Date().toISOString()
-      };
-      if (io && subadminId) io.to(getRoom(subadminId)).emit('activity', activityData);
-      await logActivity(subadminId, req.user.id, req.user.username, 'scan_duplicate', card.guest_name, `Duplicate scan attempt for ${card.guest_name}`);
-
-      return res.status(400).json({
-        error: 'Card already scanned',
-        status: 'already_scanned',
-        scanned_at: card.scanned_at,
-        guest_name: card.guest_name
-      });
-    }
-
-    await pool.query(
-      'UPDATE cards SET scanned = true, scanned_at = NOW(), scanned_by = $1 WHERE id = $2',
-      [req.user.id, card.id]
-    );
-
-    const scanData = {
-      message: 'Check-in successful',
-      status: 'success',
-      guest_name: card.guest_name,
-      scanned_at: new Date().toISOString(),
-      scanned_by: req.user.username
-    };
-
-    if (io && subadminId) {
-      io.to(getRoom(subadminId)).emit('guest_checked_in', scanData);
-      io.to(getRoom(subadminId)).emit('stats_updated');
-    }
+    const card = existingCard.rows[0];
 
     const activityData = {
       id: Date.now(),
       username: req.user.username,
-      action: 'check_in',
+      action: 'scan_duplicate',
       guest_name: card.guest_name,
-      details: `${card.guest_name} checked in`,
+      details: `Duplicate scan attempt for ${card.guest_name}`,
       created_at: new Date().toISOString()
     };
     if (io && subadminId) io.to(getRoom(subadminId)).emit('activity', activityData);
-    await logActivity(subadminId, req.user.id, req.user.username, 'check_in', card.guest_name, `${card.guest_name} checked in`);
+    await logActivity(subadminId, req.user.id, req.user.username, 'scan_duplicate', card.guest_name, `Duplicate scan attempt for ${card.guest_name}`);
 
-    res.json(scanData);
+    return res.status(400).json({
+      error: 'Card already scanned',
+      status: 'already_scanned',
+      scanned_at: card.scanned_at,
+      guest_name: card.guest_name
+    });
   } catch (error) {
     console.error('Scan error:', error);
     res.status(500).json({ error: 'Server error' });
