@@ -27,9 +27,13 @@ router.post('/', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'QR code key is required' });
     }
 
-    const cardResult = await pool.query('SELECT * FROM cards WHERE unique_key = $1', [unique_key]);
     const io = req.app.get('io');
-    const subadminId = req.user.subadmin_id || null;
+    const subadminId = req.user.subadmin_id || req.user.id;
+
+    const cardResult = await pool.query(
+      'SELECT * FROM cards WHERE unique_key = $1 AND subadmin_id = $2',
+      [unique_key, subadminId]
+    );
 
     if (cardResult.rows.length === 0) {
       const activityData = {
