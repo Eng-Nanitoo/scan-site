@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n/I18nContext';
 import { GraduationCap, Loader2, Eye, EyeOff, Globe } from 'lucide-react';
-import SmoothInput from '../components/SmoothInput';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -65,7 +64,7 @@ export default function Login() {
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="username">{t('username')}</label>
-            <SmoothInput
+            <input
               type="text"
               id="username"
               value={username}
@@ -78,7 +77,7 @@ export default function Login() {
           <div className="form-group">
             <label htmlFor="password">{t('password')}</label>
             <div style={{ position: 'relative' }}>
-              <SmoothInput
+              <input
                 type={showPassword ? 'text' : 'password'}
                 id="password"
                 value={password}
