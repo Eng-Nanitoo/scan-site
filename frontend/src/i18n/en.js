@@ -22,6 +22,10 @@ export default {
   password: 'Password',
   enterUsername: 'Enter your username',
   enterPassword: 'Enter your password',
+  errorInvalidCredentials: 'Incorrect username or password. Please try again.',
+  errorDeactivated: 'This account has been deactivated. Please contact your administrator.',
+  errorNetwork: 'Unable to connect. Please check your internet connection and try again.',
+  errorGeneric: 'Something went wrong. Please try again.',
 
   // Dashboard
   dashboard: 'Dashboard',

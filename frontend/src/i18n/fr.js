@@ -22,6 +22,10 @@ export default {
   password: 'Mot de passe',
   enterUsername: "Entrez votre nom d'utilisateur",
   enterPassword: 'Entrez votre mot de passe',
+  errorInvalidCredentials: "Nom d'utilisateur ou mot de passe incorrect. Veuillez réessayer.",
+  errorDeactivated: 'Ce compte a été désactivé. Veuillez contacter votre administrateur.',
+  errorNetwork: 'Impossible de se connecter. Vérifiez votre connexion internet et réessayez.',
+  errorGeneric: 'Une erreur s\'est produite. Veuillez réessayer.',
 
   // Dashboard
   dashboard: 'Tableau de bord',

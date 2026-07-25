@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n/I18nContext';
-import { GraduationCap, Loader2, Eye, EyeOff, Globe } from 'lucide-react';
+import { GraduationCap, Loader2, Eye, EyeOff, Globe, AlertCircle, X } from 'lucide-react';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -33,7 +33,16 @@ export default function Login() {
         navigate('/scanner');
       }
     } catch (err) {
-      setError(err.message);
+      const msg = err.message;
+      if (msg === 'Account is deactivated. Contact administrator.') {
+        setError(t('errorDeactivated'));
+      } else if (msg === 'Invalid credentials') {
+        setError(t('errorInvalidCredentials'));
+      } else if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+        setError(t('errorNetwork'));
+      } else {
+        setError(t('errorGeneric'));
+      }
     } finally {
       setLoading(false);
     }
@@ -59,7 +68,15 @@ export default function Login() {
         <h1>{t('welcomeBack')}</h1>
         <p className="subtitle">{t('signInToApp')}</p>
 
-        {error && <p style={{ color: '#ef4444', fontSize: '0.85rem', marginBottom: '1rem' }}>{error}</p>}
+        {error && (
+          <div className="error-banner">
+            <span className="error-icon"><AlertCircle size={18} /></span>
+            <span className="error-text">{error}</span>
+            <button className="error-dismiss" onClick={() => setError('')}>
+              <X size={16} />
+            </button>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -71,6 +88,7 @@ export default function Login() {
               onChange={(e) => setUsername(e.target.value)}
               required
               placeholder={t('enterUsername')}
+              autoComplete="username"
             />
           </div>
 
@@ -85,6 +103,7 @@ export default function Login() {
                 required
                 placeholder={t('enterPassword')}
                 style={{ paddingRight: 40 }}
+                autoComplete="current-password"
               />
               <button
                 type="button"

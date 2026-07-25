@@ -22,6 +22,10 @@ export default {
   password: 'كلمة المرور',
   enterUsername: 'أدخل اسم المستخدم',
   enterPassword: 'أدخل كلمة المرور',
+  errorInvalidCredentials: 'اسم المستخدم أو كلمة المرور غير صحيحة. يرجى المحاولة مرة أخرى.',
+  errorDeactivated: 'تم تعطيل هذا الحساب. يرجى التواصل مع المسؤول.',
+  errorNetwork: 'تعذر الاتصال. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.',
+  errorGeneric: 'حدث خطأ ما. يرجى المحاولة مرة أخرى.',
 
   // Dashboard
   dashboard: 'لوحة التحكم',

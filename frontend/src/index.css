@@ -1001,6 +1001,80 @@ textarea::placeholder {
   to { transform: rotate(360deg); }
 }
 
+/* ===== LOADING OVERLAY ===== */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 1rem;
+}
+
+.loading::before {
+  content: '';
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* ===== ERROR BANNER ===== */
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+  animation: errorSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  color: #fca5a5;
+  font-size: 0.875rem;
+}
+
+.error-banner .error-icon {
+  flex-shrink: 0;
+  color: #f87171;
+  display: flex;
+  align-items: center;
+}
+
+.error-banner .error-text {
+  flex: 1;
+  line-height: 1.4;
+}
+
+.error-banner .error-dismiss {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #f87171;
+  padding: 2px;
+  display: flex;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.error-banner .error-dismiss:hover {
+  opacity: 1;
+}
+
+@keyframes errorSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .spin {
   animation: spin 1s linear infinite;
 }
