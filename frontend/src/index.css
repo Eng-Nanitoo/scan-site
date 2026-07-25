@@ -232,11 +232,14 @@ body {
 .sidebar {
   width: 260px;
   background: var(--bg-sidebar);
-  border-right: 1px solid var(--border);
+  border-inline-end: 1px solid var(--border);
   padding: 1.5rem;
   position: fixed;
-  height: 100vh;
+  top: 0;
+  bottom: 0;
+  inset-inline-start: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -292,6 +295,9 @@ body {
   transition: all 0.15s;
   font-size: 0.9rem;
   font-weight: 500;
+  white-space: normal;
+  overflow: visible;
+  min-width: 0;
 }
 
 .sidebar-nav a:hover {
@@ -364,9 +370,10 @@ body {
 
 .main-content {
   flex: 1;
-  margin-left: 260px;
+  margin-inline-start: 260px;
   padding: 2rem;
   background: var(--bg);
+  min-width: 0;
 }
 
 .page-header {
@@ -1197,7 +1204,7 @@ textarea::placeholder {
   }
 
   .main-content {
-    margin-left: 0;
+    margin-inline-start: 0;
     padding: 1rem;
     padding-top: calc(56px + 1rem);
     padding-bottom: calc(64px + 1rem);
